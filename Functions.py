@@ -30,7 +30,7 @@ from time import time
 # from skimage.filters import gaussian, gabor
 # from skimage.measure import label, regionprops
 from skimage.morphology import binary_closing, disk, remove_small_holes #, remove_small_objects
-from skimage.segmentation import felzenszwalb
+from skimage.segmentation import felzenszwalb, mark_boundaries
 from skimage.restoration import unwrap_phase as unwrap
 #%%
 
@@ -382,7 +382,9 @@ hices = alt(pp,L,D,w )
 
 t2 = time()
 print(t2-t1)
+#%%
 
+np.save('./Height profiles/ice_block_45-0.npy',hices)
 
 #%%
 # =============================================================================
@@ -432,7 +434,3 @@ ax.view_init(17,120)
 plt.show()
 
 #%%
-
-
-
-
