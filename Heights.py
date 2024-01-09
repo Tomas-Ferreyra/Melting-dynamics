@@ -608,22 +608,22 @@ def calibrate_tilted(phi,tod, initial, inlim, limtar, init1=(2100,600,0.2)):
 # barl = [763,975,914,933] # for all (24)
 # barl = [765,980,895,907] # for all 30(0)
 
-file = ['/Volumes/Ice blocks/Ice_block_30(0)_cal/Ice_block_30(0)_cal','.tif']
-barl = [765,980,895,907] # for all 30(al
+file = ['/Volumes/Ice blocks/Ice_block_30(0)/Ice_block_30(0)','.tif']
+barl = [765,980,895,907] # for all 30(0)
 
 # file = ['/Volumes/Ice blocks/mano1/mano1','.tif']
 # barl = [675,887,960,990] # for all 30(0)
 
 pasos = []
 barms = []
-for n in [0]: # tqdm(range(90*0,90*1)):
+for n in [0]: # tqdm(range(90*70,90*79)):
     with imageio.get_reader(file[0]+ str(n+1).zfill(6) +file[1], mode='I') as vid:
         im = vid.get_data(0)
     
         bar = im[barl[0]:barl[1],barl[2]:barl[3]]  
         barm = -np.mean(bar,axis=1)
         
-        peak = find_peaks( barm, height=-1200, distance=7, prominence=100. )[0]  #height: 1500 cal,  ref, h: 500 (a40), 1000 (a70), 600 (a79)
+        peak = find_peaks( barm, height=-600, distance=7, prominence=100. )[0]  #height: 1500 cal,  ref, h: 500 (a40), 1000 (a70), 600 (a79)
             
         # if n in range(90*64,90*65): #range(5759,5778): 
         #     bar = im[730:975,800:900]  
@@ -646,14 +646,14 @@ plt.imshow(im,cmap='gray') #, vmax=8e2, vmin=4e2)
 plt.show()
 
 plt.figure()
-plt.imshow(im[525:800,330:685],cmap='gray') #, vmax=8e2, vmin=4e2)
+plt.imshow(im[100:988,240:810],cmap='gray') #, vmax=8e2, vmin=4e2)
 plt.show()
 
-plt.figure()
-# plt.imshow(bar,cmap='gray')
-plt.plot(barm)
-plt.grid()
-plt.show()
+# plt.figure()
+# # plt.imshow(bar,cmap='gray')
+# plt.plot(barm)
+# plt.grid()
+# plt.show()
 
 # plt.figure()
 # plt.plot(pasos,'.-')
@@ -695,413 +695,6 @@ t2 = time()
 print(t2-t1)
 #%%
 
-# plt.figure()
-# plt.imshow(ppr)
-# plt.show()
-# plt.figure()
-# plt.imshow(ppc)
-# plt.show()
-# plt.figure()
-# plt.imshow(phcal)
-# plt.show()
-
-#%%
-# plt.figure()
-# plt.imshow(phcal)
-# plt.colorbar()
-# plt.show()
-
-t1 = time()
-tod, phi, limtar, initial = todc,phcal, lims, [0.383,173,137]
-inlim=[0.5,30,30] 
-showerr=True
-
-v0 = [initial[0],initial[1],initial[2]]
-
-ny,nx = np.shape(tod[0])
-
-xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
-    (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
-xr,yr = np.meshgrid(xr,yr)
-
-pary,cov = curve_fit(lin, yr[:,200], phi[:,200])
-m2 = mrot( -np.arctan(pary[0]) )
-yro,phiy = rot(yr,phi,m2)
-
-# plt.figure()
-# plt.imshow(phiy, vmin=-4)
-# plt.colorbar()
-# plt.show()
-
-parx,cov = curve_fit(lin, xr[200], phiy[200,:])
-m2 = mrot( -np.arctan(parx[0]) )
-xro, fase = rot(xr,phiy,m2)
-
-t2 = time()
-print(t2-t1)
-
-plt.figure()
-plt.imshow(fase, vmin=-4)
-plt.colorbar()
-plt.show()
-
-# plt.figure()
-# plt.imshow(xro)
-# plt.colorbar()
-# plt.show()
-
-# plt.figure()
-# plt.imshow(yro)
-# plt.colorbar()
-# plt.show()
-
-# pat = patron(xro,yro,int(v0[1]),int(v0[2]))
-
-# fase -= np.mean(fase)
-# pat -= np.mean(pat)
-
-# para, cur = curve_fit( alt, fase.ravel(), pat.ravel(), p0=(2200,600,0.5), \
-#                       bounds=( (1900,400,0.1),(2500,800,10.0) ) ) 
-
-# haj = alt(fase,*para) 
-# error = (pat-haj)[50:-50,50:-50].flatten()
-
-# print(para)
-
-# # plt.figure()
-# # plt.imshow( fase )
-# # plt.colorbar()
-# # plt.show()
-# # plt.figure()
-# # plt.imshow( haj, vmax=2 )
-# # plt.colorbar()
-# # plt.show()
-# # plt.figure()
-# # plt.imshow( pat )
-# # plt.colorbar()
-# # plt.show()
-
-# plt.figure()
-# # plt.plot(xro[150], haj[150], 'g-')
-# # plt.plot(xro[150], pat[150], 'g--' )
-# plt.plot(yro[:,150], haj[:,150], 'r-')
-# plt.plot(yro[:,150], pat[:,150], 'r--')
-# plt.show()
- 
-# # plt.figure()
-# # plt.imshow( xro**2 + yro**2 )
-# # plt.show()
-
-#%%
-def untilt( halg, mmm, xr, yr):
-    nt,nx,ny = np.shape(halg)
-    
-    n = 0
-    prfo = halg[n] * mmm[n]
-    rrx, rry = xr[n], yr[n]
-    
-    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
-    finan = ~np.isnan(prfo.flatten())
-
-    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
-    plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
-    plane = plane * mmm[n]
-
-    m2 = mrot( -np.arctan(coeff[1]) )
-    xrot, prot = rot(rrx,prfo,m2)
-    
-    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
-    m2 = mrot( -np.arctan(pary[0]) )
-    yrot, prot = rot(rry,prot,m2)
-    
-    uihalg = [ prot ]
-    yrots, xrots = [yrot], [xrot]
-
-    for n in range(1,nt):        
-        prfo = halg[n] * mmm[n]
-        rrx, rry = xr[n], yr[n]
-            
-        m2 = mrot( -np.arctan(coeff[1]) )
-        xrot, prot = rot(rrx,prfo,m2)
-        
-        m2 = mrot( -np.arctan(pary[0]) )
-        yrot, prot = rot(rry,prot,m2)
-        
-        uihalg.append( prot )
-        yrots.append( yrot )
-        xrots.append( xrot )
-        
-    return uihalg, xrots, yrots, np.arctan(coeff[1]) * 180 / np.pi , np.arctan(pary[0]) * 180 / np.pi
-
-def untilt1( halg, mmm, xr, yr):
-    nx,ny = np.shape(halg)
-    
-    prfo = halg * mmm
-    rrx, rry = xr, yr
-    
-    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
-    finan = ~np.isnan(prfo.flatten())
-
-    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
-    plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
-    plane = plane * mmm[n]
-
-    m2 = mrot( -np.arctan(coeff[1]) )
-    xrot, prot = rot(rrx,prfo,m2)
-    
-    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
-    m2 = mrot( -np.arctan(pary[0]) )
-    yrot, prot = rot(rry,prot,m2)
-    
-    uihalg = [ prot ]
-    yrots, xrots = [yrot], [xrot]
-        
-    return uihalg, xrots, yrots, np.arctan(coeff[1]) * 180 / np.pi , np.arctan(pary[0]) * 180 / np.pi
-
-tod, phi, limtar, initial = todc,phcal, lims, [0.383,173,137]
-inlim=[0.5,30,30] 
-
-t1 = time()
-v0 = [initial[0],initial[1],initial[2]]
-
-ny,nx = np.shape(tod[0])
-
-xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
-    (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
-xr,yr = np.meshgrid(xr,yr)
-
-uii, xor, yoer, angx, angy = untilt1(phi, np.ones_like(phi), xr, yr  )
-t2 = time()
-t2-t1
-#%%
-plt.figure()
-plt.imshow(uii[0], vmin=-4)
-plt.colorbar()
-plt.show()
-
-plt.figure()
-plt.imshow(fase, vmin=-4)
-plt.colorbar()
-plt.show()
-
-angx,angy
-
-
-#%%
-def valores(v0): # d,cx,cy
-    ny,nx = np.shape(tod[0])
-
-    xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
-        (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
-    xr,yr = np.meshgrid(xr,yr)
-
-    pary,cov = curve_fit(lin, yr[:,200], phi[:,200])
-    m2 = mrot( -np.arctan(pary[0]) )
-    yro,phiy = rot(yr,phi,m2)
-    parx,cov = curve_fit(lin, xr[200], phiy[200,:])
-    m2 = mrot( -np.arctan(parx[0]) )
-    xro, fase = rot(xr,phiy,m2)
-
-    pat = patron(xro,yro,int(v0[1]),int(v0[2]))
-
-    fase -= np.mean(fase)
-    pat -= np.mean(pat)
-
-    para, cur = curve_fit( alt, fase.ravel(), pat.ravel(), p0=(2200,600,0.5), \
-                          bounds=( (1900,400,0.1),(2500,800,10.0) ) ) 
-
-    haj = alt(fase,*para) 
-    error = (pat-haj)[50:-50,50:-50].flatten()
-    return error
-
-calib = least_squares( valores, [initial[0],initial[1],initial[2]], diff_step=(0.001,1,1), \
-                      bounds=( [initial[0]-inlim[0],initial[1]-inlim[1],initial[2]-inlim[2]] ,\
-                               [initial[0]+inlim[0],initial[1]+inlim[1],initial[2]+inlim[2]] )  )     
-    
-d, cx, cy = calib.x[0], int(calib.x[1]), int(calib.x[2])
-
-ny,nx = np.shape(tod[0])
-
-xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * d, (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * d
-xr,yr = np.meshgrid(xr,yr)
-
-pary,cov = curve_fit(lin, yr[:,100], phi[:,100])
-m2 = mrot( -np.arctan(pary[0]) )
-yro,phiy = rot(yr,phi,m2)
-parx,cov = curve_fit(lin, xr[100], phiy[100,:])
-m2 = mrot( -np.arctan(parx[0]) )
-xro, fase = rot(xr,phiy,m2)
-
-pat = patron(xro,yro,cx,cy)
-
-fase -= np.mean(fase)
-pat -= np.mean(pat)
-
-(L,D,w), cur = curve_fit( alt, fase.ravel(), pat.ravel(), p0=(2200,600,0.5), \
-                      bounds=( (1900,400,0.1),(2500,800,10.0) ) ) 
-
-haj = alt(fase,L,D,w) 
-err = (pat-haj)[50:-50,50:-50].flatten()
- 
-if showerr:
-    print('Mean = ', np.mean(err), ' Std = ', np.std(err) )
-    xerr=np.linspace(-2,2,1000)
-    plt.figure()
-    plt.hist( err, bins=200, density=True)
-    plt.plot(xerr,guass(xerr,np.mean(err),np.std(err)))
-    plt.show()
-    
-    # return d, L, D, w
-    
-#%%
-
-def calibrateti(phi,tod, initial, inlim, limtar, init1=(2100,600,0.2)):
-    def valldw(v1):
-        global hal, d, cx,cy, Lm
-        hal = alt(phi, v1[0], v1[1], v1[2] )
-        Lm = v1[0]
-        
-        calib2 = least_squares(valdc, [initial[0],initial[1],initial[2]], diff_step=(0.001,1,1), \
-                              bounds=( [initial[0]-inlim[0],initial[1]-inlim[1],initial[2]-inlim[2] ] ,\
-                                       [initial[0]+inlim[0],initial[1]+inlim[1],initial[2]+inlim[2] ]) )
-        
-        d,cx,cy = calib2.x
-        # print(d)
-        error = calib2.cost
-        return error 
-    
-    def valdc(v0):
-        global hal, d, fase
-        ny,nx = np.shape(tod[0])
-    
-        xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
-            (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
-        xr,yr = np.meshgrid(xr,yr)
-        
-        xrp = xr - hal/Lm * xr
-        yrp = yr - hal/Lm * yr
-        
-        # pary,cov = curve_fit(lin, yrp[:,200], hal[:,200])
-        # m2 = mrot( -np.arctan(pary[0]) )
-        # yro,phiy = rot(yrp,hal,m2)
-        # parx,cov = curve_fit(lin, xrp[200], phiy[200,:])
-        # m2 = mrot( -np.arctan(parx[0]) )
-        # xro, fase = rot(xrp,phiy,m2)
-        
-        prfo = hal
-        rrx, rry = xrp, yrp
-        A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
-        finan = ~np.isnan(prfo.flatten())
-        coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
-        # plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
-        m2 = mrot( -np.arctan(coeff[1]) )
-        xro, prot = rot(rrx,prfo,m2)
-        pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
-        m2 = mrot( -np.arctan(pary[0]) )
-        yro, fase = rot(rry,prot,m2)
-
-    
-        pat = patron(xro,yro,int(v0[1]),int(v0[2]))
-    
-        pat -= np.mean(pat)
-        fase -= np.mean(fase)
-        
-        error = np.sum(np.abs(fase - pat))
-        return error
-    
-    calib = least_squares(valldw, [init1[0],init1[1],init1[2]], diff_step=(0.1,0.1,0.1) ,bounds=( [1700,400,0.1] , [2500,800,10.0] )  )
-    L,D,w = calib.x
-    
-    ny,nx = np.shape(tod[0])
-
-    xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * d, (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * d
-    xr,yr = np.meshgrid(xr,yr)
-    
-    hal = alt(phi, L, D, w )
-    
-    xrp = xr - hal/Lm * xr
-    yrp = yr - hal/Lm * yr
-
-    # parx,cov = curve_fit(lin, xrp[100], hal[100,:])
-    # m2 = mrot( -np.arctan(parx[0]) )
-    # xro, phix = rot(xrp,hal,m2)
-    # pary,cov = curve_fit(lin, yrp[:,100], phix[:,100])
-    # m2 = mrot( -np.arctan(pary[0]) )
-    # yro,fase = rot(yrp,phi,m2)
-    
-    # pary,cov = curve_fit(lin, yrp[:,200], hal[:,200])
-    # m2 = mrot( -np.arctan(pary[0]) )
-    # yro,phiy = rot(yrp,hal,m2)
-    # parx,cov = curve_fit(lin, xrp[200], phiy[200,:])
-    # m2 = mrot( -np.arctan(parx[0]) )
-    # xro, fase = rot(xrp,phiy,m2)
-    
-    prfo = hal
-    rrx, rry = xrp, yrp
-    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
-    finan = ~np.isnan(prfo.flatten())
-    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
-    # plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
-    m2 = mrot( -np.arctan(coeff[1]) )
-    xro, prot = rot(rrx,prfo,m2)
-    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
-    m2 = mrot( -np.arctan(pary[0]) )
-    yro, fase = rot(rry,prot,m2)
-
-    pat = patron(xro,yro,int(cx),int(cy))
-    print( int(cx),int(cy) )    
-
-    fase -= np.mean(fase)
-    pat -= np.mean(pat)
-
-    err = (pat-fase)[50:-50,50:-50].flatten()    
-    
-    print('Mean = ', np.mean(err), ' Std = ', np.std(err) )
-    xerr=np.linspace(-2,2,1000)
-    plt.figure()
-    plt.hist( err, bins=200, density=True)
-    plt.plot(xerr,guass(xerr,np.mean(err),np.std(err)))
-    plt.show()
-    
-    # print('Angulos', np.arctan(pary[0]) *180/np.pi, np.arctan(parx[0]) *180/np.pi )
-    print('Angulos', np.arctan(coeff[1]) *180/np.pi, np.arctan(pary[0]) *180/np.pi )
-    return d, L, D, w, fase, pat, xr, yr, xro,yro, xrp, yrp
-
-initial = [0.383,173,137]
-inlim = [0.05,30,30]
-limtar = [525,800,330,685]
-t1 = time()
-d, L, D, w, fase, pat, xr, yr, xro,yro, xrp, yrp = calibrateti(phcal,todc, initial, inlim, limtar, init1=(2200,600,0.5))    
-t2 = time()
-print(d, L, D, w)
-print(t2-t1) 
-#%%
-
-# plt.figure()
-# plt.imshow(fase, vmin=-2.5, vmax=2.5)
-# plt.colorbar()
-# plt.show()
-# plt.figure()
-# plt.imshow(pat)
-# plt.colorbar()
-# plt.show()
-
-# plt.figure()
-# plt.imshow(pat-fase, vmin=-1.2, vmax=1.2)
-# plt.colorbar()
-# plt.show()
-
-l = 200
-plt.figure()
-# plt.plot(xrp[150,:], hal[150,:])
-# plt.plot(yr[:,150], hal[:,150])
-# plt.plot(yrp[:,150], hal[:,150])
-plt.plot(xro[l,:], fase[l,:])
-plt.plot(xro[l,:], pat[l,:], '--')
-# plt.plot(yro[:,150], fase[:,150])
-# plt.plot(yro[:,150], pat[:,150], '--')
-plt.show()
-
 
 #%%
 # d,L,D,w = 0.37566904425667014, 2499.999999932132, 609.0871574258465, 0.9389265438674103 #for (8)
@@ -1119,26 +712,31 @@ plt.show()
 # d,L,D,w =  0.3788519951979505, 2499.9999999787165, 608.939644473253, 0.9359136030520501 #for (21)
 # d,L,D,w =  0.3795787182927243, 1900.0000917628493,  590.2214894913317, 0.7402513080313529 #for (22)
 # d,L,D,w =  0.3782083129763212, 1900.0000000000182, 585.4933773165832, 0.7459332502126153 #for (23)
-d,L,D,w =  0.3783574601007215, 2499.999998376778, 610.4975328127313, 0.9983736262657915 #for (24)
+# d,L,D,w =  0.3783574601007215, 2499.999998376778, 610.4975328127313, 0.9983736262657915 #for (24)
+d,L,D,w =  0.37990734146147753, 2199.984663102545, 599.9788548057287, 0.907462683712167  #for 30(0)
 
 t1 = time()
 
 fpass = 90
 file = ['/Volumes/Ice blocks/Ice_block_30(0)/Ice_block_30(0)','.tif']
 barl = [765,980,895,907]
-lims = [100,988,240,810]
+lims = [100,1000,240,810]
 
 
 masks = []
 refes = []
 pps, nes = [], []
-for npa in tqdm(range(0,111)):
+for npa in tqdm(range(0,80)):
     
-    if npa < 60: tod, ref = all_steps2(file, barl, fpass, bhei = 800, dist=7, prominence=100., npa=npa)
+    if npa < 40: tod, ref = all_steps2(file, barl, fpass, bhei = 500, dist=7, prominence=100., npa=npa)
+    elif npa < 70: tod, ref = all_steps2(file, barl, fpass, bhei = 1000, dist=7, prominence=100., npa=npa)
     else: tod, ref = all_steps2(file, barl, fpass, bhei = 600, dist=7, prominence=100., npa=npa)
     
-    if npa < 80: mask = recognice(ref, lims, scale=0.1e5, sigma=0.7, min_size=10)
-    else: mask = recognice(ref, lims, scale=0.07e5, sigma=0.7, min_size=10)
+    if npa == 49: mask = recognice(ref, lims, scale=0.08e4, sigma=0.9, min_size=100)
+    elif npa < 60: mask = recognice(ref, lims, scale=0.05e4, sigma=0.9, min_size=100)
+    elif npa in [67,72,75,76,77,78,79]:  mask = recognice(ref, lims, scale=0.04e4, sigma=0.5, min_size=10000)
+    elif npa in [61,62,63,64,65,68,69,70,71,73,74]: mask = recognice(ref, lims, scale=0.5e4, sigma=0.5, min_size=50000)
+    elif npa in [66]: mask = recognice(ref, lims, scale=0.6e4, sigma=0.9, min_size=100)
     
     # if npa > 91:
     #     mask[:110 + 153 + 2*(npa%92),:] = False
@@ -1165,13 +763,15 @@ t2 = time()
 print(t2-t1)
 #%%
 
-for n in range(40,60,1):
+for n in range(60,80,1):
     plt.figure()
     # plt.imshow( mark_boundaries(refes[n]/np.max(refes[n]),masks[n]>0,color=(1,0,1)), cmap='gray')
     plt.imshow(pps[n])
-    # plt.imshow(refes[n])
-    plt.title(n)
-    plt.show()
+    # plt.imshow(refes[n], cmap='gray')
+    # plt.imshow(refes[n] > 900)
+    
+#     plt.title(n)
+#     plt.show()
     
 # plt.figure()
 # plt.plot(nes,'.-')
@@ -1188,27 +788,45 @@ for n in range(40,60,1):
 # plt.show()
 
 #%%
+
+# np.shape(refes)
+# mer = np.median(refes, axis=(0))
+
+#%%
+i = 30
+plt.figure()
+plt.imshow(refes[i], cmap='gray')
+plt.show()
+plt.figure()
+plt.imshow(refes[i+1], cmap='gray')
+
+plt.show()
+plt.figure()
+plt.imshow((refes[i+1] - refes[i]) < -100, cmap='gray')
+plt.show()
+
+#%%
 # =============================================================================
 # Test for parameters for recognice
 # =============================================================================
 hielis = []
-for n in range(0,1):
+for n in range(66,67):
 # n = 0
 
     # plt.figure()
     # plt.imshow( refes[n][lims[0]:lims[1],lims[2]:lims[3]]  )
     # plt.show()
 
-    lims = [100,1000,290,810]
+    lims = [100,1000,240,810]
     
     refe = refes[n][lims[0]:lims[1],lims[2]:lims[3]]  
     refi = enhance_contrast(refe/np.max(refe),disk(7))
     
     # if n<40: divs = felzenszwalb(refi, scale=0.9e3, sigma=1.0, min_size=500)
-    divs = felzenszwalb(refi, scale=0.07e5, sigma=0.7, min_size=10) #scale 0.1e5, sigma 0.7, min 10 (hasta 80),  s: 0.07e5 (a 112), s: 
-        
+    divs = felzenszwalb(refi, scale=0.6e4, sigma=0.9, min_size=100) #scale 0.05e4, sigma 0.9, min 100 (hasta 60), excepto s: 0.08e4 (a 49), s: (a 61) 
+    # scale 0.5e4, sigma 0.5, min 50000 (61-74), no 67/72,  scale=0.04e4, sigma=0.5, min_size=10000 (67,72,75-79)
     
-    loci=[300,400,200,300]
+    loci = [300,400,200,300]
     lab = int(np.median(divs[loci[0]:loci[1],loci[2]:loci[3]])) 
     hiel = binary_closing(divs==lab, disk(15))
     hieli = remove_small_holes(hiel,area_threshold=1e4)
@@ -1218,20 +836,20 @@ for n in range(0,1):
     
     # hieli[990-100:,:] = False
     
-    plt.figure()
-    plt.imshow( mark_boundaries(refe/np.max(refe),hieli,color=(1,0,1)), cmap='gray' )
-    plt.title(n)
-    plt.show()
+    # plt.figure()
+    # plt.imshow( mark_boundaries(refe/np.max(refe),divs,color=(1,0,1)), cmap='gray' )
+    # plt.title(n)
+    # plt.show()
     
     # plt.figure()
     # plt.imshow( hieli )
     # plt.title(n)
     # plt.show()
     
-    # plt.figure()
-    # plt.imshow( mark_boundaries(refe/np.max(refe),hieli,color=(1,0,1)), cmap='gray' )
-    # plt.title(n)
-    # plt.show()
+    plt.figure()
+    plt.imshow( mark_boundaries(refe/np.max(refe),hieli,color=(1,0,1)), cmap='gray' )
+    plt.title(n)
+    plt.show()
 #%%
 
 plt.figure()
@@ -1313,7 +931,7 @@ plt.show()
 # sd = np.std(altus,axis=(1,2)).data
 
 #%%
-n = 111
+n = 80
 
 masks = np.array(masks)
 pps = np.array(pps)
@@ -1383,7 +1001,7 @@ print('Are you sure to save? (y/n):') #to make sure I don't overwrite old things
 x = input()
 if x == 'y': 
     print('Saved')
-    np.save('./Documents/Height profiles/ice_block_0_10',alts)
+    np.save('./Documents/Height profiles/ice_block_30_11',alts)
 else:
     print('Not saved')
 
