@@ -703,7 +703,7 @@ for i,ss in enumerate(sals):
     
     d = ds[i]
     halg = nangauss(halt, 2)
-    halgs.append(halg)
+    halgs.append(halg) 
     
     nt,ny,nx = np.shape(halt)
     nts.append(nt)
@@ -2419,7 +2419,7 @@ with h5py.File('./Documents/Height profiles/npys/heigtarr.hdf5', 'r') as f:
         angxs.append( angx )
         angys.append( angy )
         ts.append( tr[:,0,0] )
-        
+             
         difes = []
         for i in range(len(hal)):
             coeff, r, rank, s = polyfit(i,halgt,mmmm,xrt,yrt, order=3)

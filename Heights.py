@@ -495,6 +495,97 @@ def alt(dp,Lp,D,w0):
     """
     return dp * Lp / (dp - D*w0 )
 
+def calibrate_tilted(phi,tod, initial, inlim, limtar, init1=(2100,600,0.2)):
+    def valldw(v1):
+        global hal, d, cx,cy, Lm
+        hal = alt(phi, v1[0], v1[1], v1[2] )
+        Lm = v1[0]
+        
+        calib2 = least_squares(valdc, [initial[0],initial[1],initial[2]], diff_step=(0.001,1,1), \
+                              bounds=( [initial[0]-inlim[0],initial[1]-inlim[1],initial[2]-inlim[2] ] ,\
+                                       [initial[0]+inlim[0],initial[1]+inlim[1],initial[2]+inlim[2] ]) )
+        
+        d,cx,cy = calib2.x
+        # print(d)
+        error = calib2.cost
+        return error 
+    
+    def valdc(v0):
+        global hal, d, fase
+        ny,nx = np.shape(tod[0])
+    
+        xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
+            (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
+        xr,yr = np.meshgrid(xr,yr)
+        
+        xrp = xr - hal/Lm * xr
+        yrp = yr - hal/Lm * yr
+        
+        prfo = hal
+        rrx, rry = xrp, yrp
+        A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
+        finan = ~np.isnan(prfo.flatten())
+        coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
+        # plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
+        m2 = mrot( -np.arctan(coeff[1]) )
+        xro, prot = rot(rrx,prfo,m2)
+        pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
+        m2 = mrot( -np.arctan(pary[0]) )
+        yro, fase = rot(rry,prot,m2)
+
+    
+        pat = patron(xro,yro,int(v0[1]),int(v0[2]))
+    
+        pat -= np.mean(pat)
+        fase -= np.mean(fase)
+        
+        error = np.sum(np.abs(fase - pat))
+        return error
+    
+    calib = least_squares(valldw, [init1[0],init1[1],init1[2]], diff_step=(0.1,0.1,0.1) ,bounds=( [1700,400,0.1] , [2500,800,10.0] )  )
+    L,D,w = calib.x
+    
+    ny,nx = np.shape(tod[0])
+
+    xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * d, (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * d
+    xr,yr = np.meshgrid(xr,yr)
+    
+    hal = alt(phi, L, D, w )
+    
+    xrp = xr - hal/Lm * xr
+    yrp = yr - hal/Lm * yr
+
+    prfo = hal
+    rrx, rry = xrp, yrp
+    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
+    finan = ~np.isnan(prfo.flatten())
+    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
+    # plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
+    m2 = mrot( -np.arctan(coeff[1]) )
+    xro, prot = rot(rrx,prfo,m2)
+    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
+    m2 = mrot( -np.arctan(pary[0]) )
+    yro, fase = rot(rry,prot,m2)
+
+    pat = patron(xro,yro,int(cx),int(cy))
+    # print( int(cx),int(cy) )    
+
+    fase -= np.mean(fase)
+    pat -= np.mean(pat)
+
+    err = (pat-fase)[50:-50,50:-50].flatten()    
+    
+    print('Mean = ', np.mean(err), ' Std = ', np.std(err) )
+    xerr=np.linspace(-2,2,1000)
+    plt.figure()
+    plt.hist( err, bins=200, density=True)
+    plt.plot(xerr,guass(xerr,np.mean(err),np.std(err)))
+    plt.show()
+    
+    # print('Angulos', np.arctan(pary[0]) *180/np.pi, np.arctan(parx[0]) *180/np.pi )
+    print('Angulos', np.arctan(coeff[1]) *180/np.pi, np.arctan(pary[0]) *180/np.pi )
+    return d, L, D, w  #, fase, pat, xr, yr, xro,yro, xrp, yrp
+
 #%%
 # =============================================================================
 # Find limits for phase recognition
@@ -517,22 +608,22 @@ def alt(dp,Lp,D,w0):
 # barl = [763,975,914,933] # for all (24)
 # barl = [765,980,895,907] # for all 30(0)
 
-# file = ['/Volumes/Ice blocks/Ice_block_30(0)_cal/Ice_block_30(0)_cal','.tif']
-# barl = [765,980,895,907] # for all 30(0)
+file = ['/Volumes/Ice blocks/Ice_block_30(0)_cal/Ice_block_30(0)_cal','.tif']
+barl = [765,980,895,907] # for all 30(al
 
-file = ['/Volumes/Ice blocks/mano1/mano1','.tif']
-barl = [675,887,960,990] # for all 30(0)
+# file = ['/Volumes/Ice blocks/mano1/mano1','.tif']
+# barl = [675,887,960,990] # for all 30(0)
 
 pasos = []
 barms = []
-for n in [181]: # tqdm(range(90*0,90*1)):
+for n in [0]: # tqdm(range(90*0,90*1)):
     with imageio.get_reader(file[0]+ str(n+1).zfill(6) +file[1], mode='I') as vid:
         im = vid.get_data(0)
     
         bar = im[barl[0]:barl[1],barl[2]:barl[3]]  
         barm = -np.mean(bar,axis=1)
         
-        peak = find_peaks( barm, height=-1500, distance=7, prominence=100. )[0]  #height: 1200 ref/cal, h: 500 (a40), 1000 (a70), 600 (a79)
+        peak = find_peaks( barm, height=-1200, distance=7, prominence=100. )[0]  #height: 1500 cal,  ref, h: 500 (a40), 1000 (a70), 600 (a79)
             
         # if n in range(90*64,90*65): #range(5759,5778): 
         #     bar = im[730:975,800:900]  
@@ -555,14 +646,14 @@ plt.imshow(im,cmap='gray') #, vmax=8e2, vmin=4e2)
 plt.show()
 
 plt.figure()
-plt.imshow(im[50:450,200:600],cmap='gray') #, vmax=8e2, vmin=4e2)
+plt.imshow(im[525:800,330:685],cmap='gray') #, vmax=8e2, vmin=4e2)
 plt.show()
 
-# plt.figure()
-# # plt.imshow(bar,cmap='gray')
-# plt.plot(barm)
-# plt.grid()
-# plt.show()
+plt.figure()
+# plt.imshow(bar,cmap='gray')
+plt.plot(barm)
+plt.grid()
+plt.show()
 
 # plt.figure()
 # plt.plot(pasos,'.-')
@@ -573,9 +664,9 @@ plt.show()
 t1 = time()
 
 fpass = 90
-# filer = ['/Volumes/Ice blocks/Ice_block_30(0)_ref/Ice_block_30(0)','.tif']
-# barl = [765,980,895,907] # for _ref 
-# lims = [100,988,240,810]
+filer = ['/Volumes/Ice blocks/Ice_block_30(0)_ref/Ice_block_30(0)','.tif']
+barl = [765,980,895,907] # for _ref 
+lims = [100,988,240,810]
 
 todr, refr = all_steps2(filer, barl, fpass, bhei = 1200, dist=7, prominence=100.)
 maskr = np.zeros_like(todr[0])
@@ -585,7 +676,7 @@ ppr =  unwrap(phar*maskr)
 
 print(ne)
 
-filec = ['/Volumes/Ice blocks//Ice_block_30(0)_cal/Ice_block_30(0)_cal','.tif']
+filec = ['/Volumes/Ice blocks/Ice_block_30(0)_cal/Ice_block_30(0)_cal','.tif']
 lims = [525,800,330,685]
 
 todc, refc = all_steps2(filec, barl, fpass, bhei = 1200, dist=7, prominence=100.)
@@ -596,19 +687,421 @@ ppc = unwrap(phac*maskc)
 
 phcal = (ppr-ppc)[lims[0]:lims[1],lims[2]:lims[3]]
 
-d,L,D,w = calibrate_params(todc,phcal, lims, [0.392,173,173], inlim=[0.1,30,30] ,showerr=True)
+# d,L,D,w = calibrate_params(todc,phcal, lims, [0.383,173,137], inlim=[0.5,30,30] ,showerr=True)
+d, L, D, w = calibrate_tilted(phcal, todc, [0.383,173,137], [0.05,30,30], lims, init1=(2200,600,0.5))
 print('d = ',d,'\nL =',L,'\nD = ',D,'\nw = ',w)
 
 t2 = time()
 print(t2-t1)
 #%%
 
+# plt.figure()
+# plt.imshow(ppr)
+# plt.show()
+# plt.figure()
+# plt.imshow(ppc)
+# plt.show()
+# plt.figure()
+# plt.imshow(phcal)
+# plt.show()
+
+#%%
+# plt.figure()
+# plt.imshow(phcal)
+# plt.colorbar()
+# plt.show()
+
+t1 = time()
+tod, phi, limtar, initial = todc,phcal, lims, [0.383,173,137]
+inlim=[0.5,30,30] 
+showerr=True
+
+v0 = [initial[0],initial[1],initial[2]]
+
+ny,nx = np.shape(tod[0])
+
+xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
+    (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
+xr,yr = np.meshgrid(xr,yr)
+
+pary,cov = curve_fit(lin, yr[:,200], phi[:,200])
+m2 = mrot( -np.arctan(pary[0]) )
+yro,phiy = rot(yr,phi,m2)
+
+# plt.figure()
+# plt.imshow(phiy, vmin=-4)
+# plt.colorbar()
+# plt.show()
+
+parx,cov = curve_fit(lin, xr[200], phiy[200,:])
+m2 = mrot( -np.arctan(parx[0]) )
+xro, fase = rot(xr,phiy,m2)
+
+t2 = time()
+print(t2-t1)
+
 plt.figure()
-plt.imshow(ppr)
+plt.imshow(fase, vmin=-4)
+plt.colorbar()
 plt.show()
+
+# plt.figure()
+# plt.imshow(xro)
+# plt.colorbar()
+# plt.show()
+
+# plt.figure()
+# plt.imshow(yro)
+# plt.colorbar()
+# plt.show()
+
+# pat = patron(xro,yro,int(v0[1]),int(v0[2]))
+
+# fase -= np.mean(fase)
+# pat -= np.mean(pat)
+
+# para, cur = curve_fit( alt, fase.ravel(), pat.ravel(), p0=(2200,600,0.5), \
+#                       bounds=( (1900,400,0.1),(2500,800,10.0) ) ) 
+
+# haj = alt(fase,*para) 
+# error = (pat-haj)[50:-50,50:-50].flatten()
+
+# print(para)
+
+# # plt.figure()
+# # plt.imshow( fase )
+# # plt.colorbar()
+# # plt.show()
+# # plt.figure()
+# # plt.imshow( haj, vmax=2 )
+# # plt.colorbar()
+# # plt.show()
+# # plt.figure()
+# # plt.imshow( pat )
+# # plt.colorbar()
+# # plt.show()
+
+# plt.figure()
+# # plt.plot(xro[150], haj[150], 'g-')
+# # plt.plot(xro[150], pat[150], 'g--' )
+# plt.plot(yro[:,150], haj[:,150], 'r-')
+# plt.plot(yro[:,150], pat[:,150], 'r--')
+# plt.show()
+ 
+# # plt.figure()
+# # plt.imshow( xro**2 + yro**2 )
+# # plt.show()
+
+#%%
+def untilt( halg, mmm, xr, yr):
+    nt,nx,ny = np.shape(halg)
+    
+    n = 0
+    prfo = halg[n] * mmm[n]
+    rrx, rry = xr[n], yr[n]
+    
+    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
+    finan = ~np.isnan(prfo.flatten())
+
+    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
+    plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
+    plane = plane * mmm[n]
+
+    m2 = mrot( -np.arctan(coeff[1]) )
+    xrot, prot = rot(rrx,prfo,m2)
+    
+    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
+    m2 = mrot( -np.arctan(pary[0]) )
+    yrot, prot = rot(rry,prot,m2)
+    
+    uihalg = [ prot ]
+    yrots, xrots = [yrot], [xrot]
+
+    for n in range(1,nt):        
+        prfo = halg[n] * mmm[n]
+        rrx, rry = xr[n], yr[n]
+            
+        m2 = mrot( -np.arctan(coeff[1]) )
+        xrot, prot = rot(rrx,prfo,m2)
+        
+        m2 = mrot( -np.arctan(pary[0]) )
+        yrot, prot = rot(rry,prot,m2)
+        
+        uihalg.append( prot )
+        yrots.append( yrot )
+        xrots.append( xrot )
+        
+    return uihalg, xrots, yrots, np.arctan(coeff[1]) * 180 / np.pi , np.arctan(pary[0]) * 180 / np.pi
+
+def untilt1( halg, mmm, xr, yr):
+    nx,ny = np.shape(halg)
+    
+    prfo = halg * mmm
+    rrx, rry = xr, yr
+    
+    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
+    finan = ~np.isnan(prfo.flatten())
+
+    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
+    plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
+    plane = plane * mmm[n]
+
+    m2 = mrot( -np.arctan(coeff[1]) )
+    xrot, prot = rot(rrx,prfo,m2)
+    
+    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
+    m2 = mrot( -np.arctan(pary[0]) )
+    yrot, prot = rot(rry,prot,m2)
+    
+    uihalg = [ prot ]
+    yrots, xrots = [yrot], [xrot]
+        
+    return uihalg, xrots, yrots, np.arctan(coeff[1]) * 180 / np.pi , np.arctan(pary[0]) * 180 / np.pi
+
+tod, phi, limtar, initial = todc,phcal, lims, [0.383,173,137]
+inlim=[0.5,30,30] 
+
+t1 = time()
+v0 = [initial[0],initial[1],initial[2]]
+
+ny,nx = np.shape(tod[0])
+
+xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
+    (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
+xr,yr = np.meshgrid(xr,yr)
+
+uii, xor, yoer, angx, angy = untilt1(phi, np.ones_like(phi), xr, yr  )
+t2 = time()
+t2-t1
+#%%
 plt.figure()
-plt.imshow(phcal)
+plt.imshow(uii[0], vmin=-4)
+plt.colorbar()
 plt.show()
+
+plt.figure()
+plt.imshow(fase, vmin=-4)
+plt.colorbar()
+plt.show()
+
+angx,angy
+
+
+#%%
+def valores(v0): # d,cx,cy
+    ny,nx = np.shape(tod[0])
+
+    xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
+        (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
+    xr,yr = np.meshgrid(xr,yr)
+
+    pary,cov = curve_fit(lin, yr[:,200], phi[:,200])
+    m2 = mrot( -np.arctan(pary[0]) )
+    yro,phiy = rot(yr,phi,m2)
+    parx,cov = curve_fit(lin, xr[200], phiy[200,:])
+    m2 = mrot( -np.arctan(parx[0]) )
+    xro, fase = rot(xr,phiy,m2)
+
+    pat = patron(xro,yro,int(v0[1]),int(v0[2]))
+
+    fase -= np.mean(fase)
+    pat -= np.mean(pat)
+
+    para, cur = curve_fit( alt, fase.ravel(), pat.ravel(), p0=(2200,600,0.5), \
+                          bounds=( (1900,400,0.1),(2500,800,10.0) ) ) 
+
+    haj = alt(fase,*para) 
+    error = (pat-haj)[50:-50,50:-50].flatten()
+    return error
+
+calib = least_squares( valores, [initial[0],initial[1],initial[2]], diff_step=(0.001,1,1), \
+                      bounds=( [initial[0]-inlim[0],initial[1]-inlim[1],initial[2]-inlim[2]] ,\
+                               [initial[0]+inlim[0],initial[1]+inlim[1],initial[2]+inlim[2]] )  )     
+    
+d, cx, cy = calib.x[0], int(calib.x[1]), int(calib.x[2])
+
+ny,nx = np.shape(tod[0])
+
+xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * d, (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * d
+xr,yr = np.meshgrid(xr,yr)
+
+pary,cov = curve_fit(lin, yr[:,100], phi[:,100])
+m2 = mrot( -np.arctan(pary[0]) )
+yro,phiy = rot(yr,phi,m2)
+parx,cov = curve_fit(lin, xr[100], phiy[100,:])
+m2 = mrot( -np.arctan(parx[0]) )
+xro, fase = rot(xr,phiy,m2)
+
+pat = patron(xro,yro,cx,cy)
+
+fase -= np.mean(fase)
+pat -= np.mean(pat)
+
+(L,D,w), cur = curve_fit( alt, fase.ravel(), pat.ravel(), p0=(2200,600,0.5), \
+                      bounds=( (1900,400,0.1),(2500,800,10.0) ) ) 
+
+haj = alt(fase,L,D,w) 
+err = (pat-haj)[50:-50,50:-50].flatten()
+ 
+if showerr:
+    print('Mean = ', np.mean(err), ' Std = ', np.std(err) )
+    xerr=np.linspace(-2,2,1000)
+    plt.figure()
+    plt.hist( err, bins=200, density=True)
+    plt.plot(xerr,guass(xerr,np.mean(err),np.std(err)))
+    plt.show()
+    
+    # return d, L, D, w
+    
+#%%
+
+def calibrateti(phi,tod, initial, inlim, limtar, init1=(2100,600,0.2)):
+    def valldw(v1):
+        global hal, d, cx,cy, Lm
+        hal = alt(phi, v1[0], v1[1], v1[2] )
+        Lm = v1[0]
+        
+        calib2 = least_squares(valdc, [initial[0],initial[1],initial[2]], diff_step=(0.001,1,1), \
+                              bounds=( [initial[0]-inlim[0],initial[1]-inlim[1],initial[2]-inlim[2] ] ,\
+                                       [initial[0]+inlim[0],initial[1]+inlim[1],initial[2]+inlim[2] ]) )
+        
+        d,cx,cy = calib2.x
+        # print(d)
+        error = calib2.cost
+        return error 
+    
+    def valdc(v0):
+        global hal, d, fase
+        ny,nx = np.shape(tod[0])
+    
+        xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * v0[0],\
+            (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * v0[0]
+        xr,yr = np.meshgrid(xr,yr)
+        
+        xrp = xr - hal/Lm * xr
+        yrp = yr - hal/Lm * yr
+        
+        # pary,cov = curve_fit(lin, yrp[:,200], hal[:,200])
+        # m2 = mrot( -np.arctan(pary[0]) )
+        # yro,phiy = rot(yrp,hal,m2)
+        # parx,cov = curve_fit(lin, xrp[200], phiy[200,:])
+        # m2 = mrot( -np.arctan(parx[0]) )
+        # xro, fase = rot(xrp,phiy,m2)
+        
+        prfo = hal
+        rrx, rry = xrp, yrp
+        A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
+        finan = ~np.isnan(prfo.flatten())
+        coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
+        # plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
+        m2 = mrot( -np.arctan(coeff[1]) )
+        xro, prot = rot(rrx,prfo,m2)
+        pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
+        m2 = mrot( -np.arctan(pary[0]) )
+        yro, fase = rot(rry,prot,m2)
+
+    
+        pat = patron(xro,yro,int(v0[1]),int(v0[2]))
+    
+        pat -= np.mean(pat)
+        fase -= np.mean(fase)
+        
+        error = np.sum(np.abs(fase - pat))
+        return error
+    
+    calib = least_squares(valldw, [init1[0],init1[1],init1[2]], diff_step=(0.1,0.1,0.1) ,bounds=( [1700,400,0.1] , [2500,800,10.0] )  )
+    L,D,w = calib.x
+    
+    ny,nx = np.shape(tod[0])
+
+    xr,yr = (np.arange(0.5,nx+0.5)[limtar[2]:limtar[3]] - nx/2) * d, (-np.arange(0.5,ny+0.5)[limtar[0]:limtar[1]] + ny/2) * d
+    xr,yr = np.meshgrid(xr,yr)
+    
+    hal = alt(phi, L, D, w )
+    
+    xrp = xr - hal/Lm * xr
+    yrp = yr - hal/Lm * yr
+
+    # parx,cov = curve_fit(lin, xrp[100], hal[100,:])
+    # m2 = mrot( -np.arctan(parx[0]) )
+    # xro, phix = rot(xrp,hal,m2)
+    # pary,cov = curve_fit(lin, yrp[:,100], phix[:,100])
+    # m2 = mrot( -np.arctan(pary[0]) )
+    # yro,fase = rot(yrp,phi,m2)
+    
+    # pary,cov = curve_fit(lin, yrp[:,200], hal[:,200])
+    # m2 = mrot( -np.arctan(pary[0]) )
+    # yro,phiy = rot(yrp,hal,m2)
+    # parx,cov = curve_fit(lin, xrp[200], phiy[200,:])
+    # m2 = mrot( -np.arctan(parx[0]) )
+    # xro, fase = rot(xrp,phiy,m2)
+    
+    prfo = hal
+    rrx, rry = xrp, yrp
+    A = np.array([rrx.flatten()*0+1,rrx.flatten(),rry.flatten()]).T
+    finan = ~np.isnan(prfo.flatten())
+    coeff, r, rank, s = np.linalg.lstsq(A[finan] , (prfo.flatten())[finan], rcond=None)
+    # plane = coeff[0] + coeff[1] * rrx + coeff[2] * rry
+    m2 = mrot( -np.arctan(coeff[1]) )
+    xro, prot = rot(rrx,prfo,m2)
+    pary,cov = curve_fit(lin, (rry.flatten())[finan], (prot.flatten())[finan])
+    m2 = mrot( -np.arctan(pary[0]) )
+    yro, fase = rot(rry,prot,m2)
+
+    pat = patron(xro,yro,int(cx),int(cy))
+    print( int(cx),int(cy) )    
+
+    fase -= np.mean(fase)
+    pat -= np.mean(pat)
+
+    err = (pat-fase)[50:-50,50:-50].flatten()    
+    
+    print('Mean = ', np.mean(err), ' Std = ', np.std(err) )
+    xerr=np.linspace(-2,2,1000)
+    plt.figure()
+    plt.hist( err, bins=200, density=True)
+    plt.plot(xerr,guass(xerr,np.mean(err),np.std(err)))
+    plt.show()
+    
+    # print('Angulos', np.arctan(pary[0]) *180/np.pi, np.arctan(parx[0]) *180/np.pi )
+    print('Angulos', np.arctan(coeff[1]) *180/np.pi, np.arctan(pary[0]) *180/np.pi )
+    return d, L, D, w, fase, pat, xr, yr, xro,yro, xrp, yrp
+
+initial = [0.383,173,137]
+inlim = [0.05,30,30]
+limtar = [525,800,330,685]
+t1 = time()
+d, L, D, w, fase, pat, xr, yr, xro,yro, xrp, yrp = calibrateti(phcal,todc, initial, inlim, limtar, init1=(2200,600,0.5))    
+t2 = time()
+print(d, L, D, w)
+print(t2-t1) 
+#%%
+
+# plt.figure()
+# plt.imshow(fase, vmin=-2.5, vmax=2.5)
+# plt.colorbar()
+# plt.show()
+# plt.figure()
+# plt.imshow(pat)
+# plt.colorbar()
+# plt.show()
+
+# plt.figure()
+# plt.imshow(pat-fase, vmin=-1.2, vmax=1.2)
+# plt.colorbar()
+# plt.show()
+
+l = 200
+plt.figure()
+# plt.plot(xrp[150,:], hal[150,:])
+# plt.plot(yr[:,150], hal[:,150])
+# plt.plot(yrp[:,150], hal[:,150])
+plt.plot(xro[l,:], fase[l,:])
+plt.plot(xro[l,:], pat[l,:], '--')
+# plt.plot(yro[:,150], fase[:,150])
+# plt.plot(yro[:,150], pat[:,150], '--')
+plt.show()
+
 
 #%%
 # d,L,D,w = 0.37566904425667014, 2499.999999932132, 609.0871574258465, 0.9389265438674103 #for (8)
