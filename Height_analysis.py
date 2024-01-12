@@ -17,7 +17,7 @@ from matplotlib.colors import LightSource
 from scipy.optimize import curve_fit, least_squares
 from scipy.signal import find_peaks, correlate, fftconvolve, peak_prominences
 import scipy.ndimage as snd # from scipy.ndimage import rotate from scipy.ndimage import convolve
-from scipy.stats import linregress
+from scipy.stats import linregress, skew
 from scipy.interpolate import make_interp_spline
 from scipy.ndimage import maximum_filter
 
@@ -2539,7 +2539,7 @@ plt.show()
 
 #%%
 # =============================================================================
-# Melt rate half volume
+# Melt rate half volume (the one I use)
 # =============================================================================
 th0 = 0.1 # m
 
@@ -3318,6 +3318,328 @@ plt.show()
 
 #%%
 # =============================================================================
+# Curvature maps and PDF
+# =============================================================================
+
+curvats = []
+
+for n in tqdm(range(16)):
+
+    nt,ny,nx = np.shape(halgts[n])
+    curvs = []
+
+    for i in range(nt):
+        xdy, xdx = np.gradient( xrts[n][i], 1,1 )
+        ydy, ydx = np.gradient( yrts[n][i], 1,1 )
+        xdxy, xdxx = np.gradient( xdx, 1,1 )
+        ydyy, ydyx = np.gradient( ydy, 1,1 )
+        
+        hdy, hdx = np.gradient( halgts[n][i], 1,1  )
+        hdyy, hdyx = np.gradient( hdy, 1,1 )
+        hdxy, hdxx = np.gradient( hdx, 1,1 )
+        
+        hy, hx = hdy * ydy**-1, hdx * xdx**-1
+        hyy = hdyy * ydy**-2 - hdy * ydyy * ydy**-3
+        hxx = hdxx * xdx**-2 - hdx * xdxx * xdx**-3
+        hxy = hdxy * ydy**-1 * xdx**-1 - hdy * ydyx * ydy**-2 * xdx**-1
+        
+        curv = 1/2 * ( (1 + hxx**2) * hyy + (1+ hyy*2) * hxx - 2 * hx * hy * hxy ) / (1 + hx**2 + hy**2)**(3/2) 
+        curvs.append(curv)
+    
+    curvats.append(curvs)
+
+# plt.figure()
+# plt.imshow( halgts[n][i] )
+# plt.colorbar()
+# plt.show()
+# plt.figure()
+# plt.imshow( curv, cmap='gray' )
+# plt.colorbar()
+# plt.show()
+#%%
+def compg(hist,bine,curv):
+    xg = np.linspace(bine[0],bine[-1],1000)
+    curvc = curv[~np.isnan(curv)]
+    mea,std = np.mean(curvc), np.std(curvc)
+    print(mea, std)
+    norm, argu = std * np.sqrt(2*np.pi), ((xg-mea)/std)**2
+    return xg, 1/norm * np.exp(-1/2 * argu)
+
+plt.figure()
+
+for i in [10,20,30,40,50,60]:
+    curv = curvs[i]
+    curvl = curv[~np.isnan(curv)]
+    mee, sii = np.mean(curvl), np.std(curvl)
+    
+    hist, bine = np.histogram( curvl, bins=200, density=True )
+    # histn, bine = np.histogram( (curvl-mee)/sii , bins=200, density=True )
+    binc = (bine[1:] + bine[:-1]) / 2
+
+    # xg, gg = compg(hist,bine,curv)
+
+    plt.plot(binc, hist, label=i)
+    
+# xg = np.linspace(-10,10,1000)
+# gg = 1/np.sqrt(2*np.pi) * np.exp(-1/2 * xg**2)
+# plt.plot(xg, gg, '--')
+plt.grid()
+plt.legend()
+# plt.yscale('log')
+# plt.xlim(-0.5,0.5)
+plt.show()
+
+#%%
+
+#%%
+# =============================================================================
+# Power spectrum
+# =============================================================================
+from largestinteriorrectangle import lir
+# from skimage.transform import warp_polar
+from skimage.filters import window
+from math import ceil
+from matplotlib import colors
+from matplotlib.cm import ScalarMappable
+
+def insr(halgts,n, i=-1):
+    ha = halgts[n][i]
+    bbo = (lir(ha<1e8)).astype('float32')
+    bbd,bbl,bbu,bbr = int(bbo[1]+bbo[3]), int(bbo[0]) ,int(bbo[1]), int(bbo[0]+bbo[2])
+    return bbu,bbd,bbl,bbr
+
+def welch2d(ha, yh, xh, Ly, Lx, D=0.5, wind=('hann')):
+    '''
+    D: overlap (between 0 and 1) 
+    wind: Tuple detailing the name of desired window and relevant value (if neccesary for the window)    
+    
+    Possible windows: hannig, hamming, blackman, kaiser, tukey 
+    kasiser and tukey windows need the extra parameter
+
+    Recommended: 
+        wind = ('hann')
+        D = 0.5
+    '''
+    
+    ny, nx  = np.shape(ha)
+
+    My, Mx = int( ny / (Ly + D*(1-Ly)) ), int( nx / (Lx + D*(1-Lx)) )
+    ovy, ovx = ceil(My*D), ceil(Mx*D)
+
+    haw = []
+    for u in range(Ly):
+        for v in range(Lx):
+            haw.append( ha[ u*My - u*ovy : (u+1)*My - u*ovy, v*Mx - v*ovx : (v+1)*Mx - v*ovx ] )
+            
+    dyt = yh[:-1] - yh[1:]
+    dy = np.nanmean(dyt)  #the average distance (in mm) of pixels in y direc (varies in 0.3% only)
+    dxt = xh[:,1:] - xh[:,:-1]
+    dx = np.nanmean(dxt)  #analogous to y direc        
+    
+    kfs, sfs = [], []
+    for u in range(len(haw)):
+        
+        hw = haw[u] * window(wind, np.shape(haw[u]) )
+        
+        hwf = np.fft.fftshift( np.fft.fft2(hw) )
+        ky = np.fft.fftfreq( np.shape(haw[u])[0], d=dy )
+        kx = np.fft.fftfreq( np.shape(haw[u])[1], d=dx )
+        kx,ky = np.meshgrid(kx,ky)
+        kx,ky = np.fft.fftshift(kx), np.fft.fftshift(ky)
+        k = np.sqrt(ky**2 + kx**2)
+        
+        kfl, sfl = k.flatten(), np.abs(hwf.flatten())**2
+        kfs.append(kfl)
+        sfs.append(sfl)
+
+    ks,sf = kfs[0], np.mean(sfs,axis=0)
+            
+    return ks, sf
+
+def customcmap(vmin,vmax):
+    cdict = {'red':   [(0.0,  0.0, 1.0),
+                       (0.5,  0.5, 0.5),
+                       (1.0,  0.0, 1.0)],
+
+             'green': [(0.0,  0.0, 0.0),
+                       (0.5, 0.0, 0.0),
+                       (1.0,  0.0, 0.0)],
+
+             'blue':  [(0.0,  0.0, 0.0),
+                       (0.5,  0.0, 0.0),
+                       (1.0,  0.0, 0.0)]}
+
+    cmap = colors.LinearSegmentedColormap('custom', cdict)
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    cmm = ScalarMappable(norm=norm, cmap=cmap)
+    return cmap, cmm
+#%%
+n = 0
+i = 60
+
+bbu,bbd,bbl,bbr = insr(halgts, n, i=-2)
+ha = halgts[n][i][bbu:bbd,bbl:bbr]
+
+yh = yrts[n][i]
+dyt = yh[:-1] - yh[1:]
+dy = np.nanmean(dyt)  #the average distance (in mm) of pixels in y direc (varies in 0.3% only)
+
+xh = xrts[n][i]
+dxt = xh[:,1:] - xh[:,:-1]
+dx = np.nanmean(dxt)  #analogous to y direc
+
+hf = np.fft.fftshift( np.fft.fft2(ha) )
+ky = np.fft.fftfreq( np.shape(ha)[0], d=dy  )
+kx = np.fft.fftfreq( np.shape(ha)[1], d=dx  )
+kx,ky = np.meshgrid(kx,ky)
+kx,ky = np.fft.fftshift(kx), np.fft.fftshift(ky)
+k = np.sqrt(ky**2 + kx**2)
+
+# hfp = warp_polar(np.abs(hf))
+
+
+plt.figure()
+plt.imshow( ha )
+plt.show()
+plt.figure()
+plt.imshow( k )
+plt.show()
+plt.figure()
+plt.imshow( np.log(np.abs(hf)) )
+plt.show()
+#%%
+lar = 200
+kb = np.linspace(0, np.max(k), lar)
+dk = kb[1]-kb[0]
+
+sms = []
+for i in range(lar):
+    filt = (k < kb[i]+dk/2) * (k > kb[i]-dk/2)
+    sm = np.mean( np.abs(hf[filt])**2 )
+    sms.append(sm)
+
+
+plt.figure()
+plt.plot(kb[1:], sms[1:], '.-')
+plt.plot(kb[1:], kb[1:]**-4 * 300, 'g-' )
+plt.plot(kb[1:], kb[1:]**-3 * 8000, 'r-')
+plt.yscale('log')
+plt.xscale('log')
+plt.grid()
+plt.show()
+
+# plt.figure()
+# plt.scatter(k, np.abs(hf)**2  )
+# plt.plot(k, k**-4 * algo, 'b-')
+# plt.yscale('log')
+# # plt.xscale('log')
+# plt.grid()
+# plt.show()
+
+
+# plt.figure()
+# plt.imshow(k)
+# plt.show()
+# plt.figure()
+# plt.imshow(filt)
+# plt.show()
+
+#%%
+n = 0
+i = 60
+
+bbu,bbd,bbl,bbr = insr(halgts, n, i=-2)
+ha = halgts[n][i][bbu:bbd,bbl:bbr]
+
+yh = yrts[n][i]
+dyt = yh[:-1] - yh[1:]
+dy = np.nanmean(dyt)  #the average distance (in mm) of pixels in y direc (varies in 0.3% only)
+
+xh = xrts[n][i]
+dxt = xh[:,1:] - xh[:,:-1]
+dx = np.nanmean(dxt)  #analogous to y direc
+
+hfy = np.fft.fftshift( np.fft.fft(ha, axis=0), axes=0 )
+hfym = np.mean(np.abs(hfy)**2, axis=1)
+ky = np.fft.fftshift( np.fft.fftfreq( np.shape(ha)[0], d=dy ) )
+
+hfx = np.fft.fftshift( np.fft.fft(ha, axis=1), axes=1 )
+hfxm = np.mean(np.abs(hfx)**2, axis=0)
+kx = np.fft.fftshift( np.fft.fftfreq( np.shape(ha)[1], d=dx ) )
+
+
+plt.figure()
+# plt.plot(ky, np.abs(hfy)**2 )
+plt.plot(ky, hfym)
+plt.plot(kx, hfxm)
+
+plt.plot(ky, ky**-2  )
+
+plt.yscale('log')
+plt.xscale('log')
+plt.show()
+
+#%%
+
+
+
+#%%
+# =============================================================================
+# power law with welch 
+# =============================================================================
+n = 0
+nt = np.shape( halgts[n] )[0] - 1
+
+plt.figure()
+cmap,cmm = customcmap(0, 70)
+
+for i in tqdm(range(0,nt,5)):
+    bbu,bbd,bbl,bbr = insr(halgts, n, i=i)
+    ha = halgts[n][i][bbu:bbd,bbl:bbr]
+    yh = yrts[n][i]
+    xh = xrts[n][i]
+    
+    D = 0.5
+    ks, sf = welch2d(ha,yh,xh, 3, 2)
+    
+    lar = 250
+    kb = np.linspace(0, np.max(ks), lar)
+    dk = kb[1]-kb[0]
+    
+    sms = []
+    for j in range(lar):
+        filt = (ks < kb[j]+dk/2) * (ks > kb[j]-dk/2)
+        sm = np.mean( sf[filt] )
+        sms.append(sm)
+
+    # plt.plot(ks,sf,'.')
+    plt.plot(kb,sms,'-', c=cmap(i/nt))
+    
+plt.plot(kb[:55],kb[:55]**-4*1e-2,'--')
+plt.grid()
+plt.yscale('log')
+plt.xscale('log')
+plt.legend()
+plt.colorbar(cmm)
+plt.show()
+
+#%%
+#posibles windows:
+# rectangular
+# triangular
+# hannig
+# hamming
+# blackman
+# kaiser
+# tukey (agregue yo)
+# gaussian (agregue yo)
+
+plt.figure()
+plt.imshow(window(('hann'), np.shape(haw[u]) ))
+plt.show()
+
+#%%
+# =============================================================================
 # other thing
 # =============================================================================
 te = np.linspace(0, 25, 1000)
@@ -3341,7 +3663,32 @@ plt.savefig('./Documents/densano.png',dpi=400, bbox_inches='tight')
 plt.show()
 
 #%%
+from matplotlib import colors
+from matplotlib.cm import ScalarMappable
+fig, ax = plt.subplots(figsize=(6, 6))
 
+cdict = {'red':   [(0.0,  0.0, 1.0),
+                   (0.5,  0.5, 0.5),
+                   (1.0,  0.0, 1.0)],
+
+         'green': [(0.0,  0.0, 0.0),
+                   (0.5, 0.0, 0.0),
+                   (1.0,  0.0, 0.0)],
+
+         'blue':  [(0.0,  0.0, 0.0),
+                   (0.5,  0.0, 0.0),
+                   (1.0,  0.0, 0.0)]}
+
+cmap = colors.LinearSegmentedColormap('custom', cdict)
+norm = colors.Normalize(vmin=0, vmax=4)
+cmm = ScalarMappable(norm=norm, cmap=cmap)
+
+for i in np.linspace(0, 4,10):
+    # Plot 50 lines, from y = 0 to y = 1, taking a corresponding value from the cmap
+    ax.plot([-1, 1], [i, i], c=cmap(i/4), label=i)
+
+plt.colorbar(cmm)
+plt.show()
 
 #%%
 
