@@ -323,7 +323,74 @@ def all_steps3(file, barl, fpass, npa=0, bhei = 0.6, dist=10, prominence=100, zf
     
     return tod, ref
 
+def st_psm_orto(tod, frecline=200, initfrec=2, sumA = -1, nef=0):
+    """
+    Returns phase diference of the object from the images of the patterns. Using 2d grating, considering both directions same frequency 
+    
+    tod: 3d-array, images of the pattern (returned from all_frames())
+    frecline: int, row where we calculate the frequency of the pattern
+    initfrec: int, how many frequency t skip before looking for maximum
+    sumA: 1 or -1, whether to add or substract A for normalization
+    """
+    nt,ny,nx = np.shape(tod)
+    N = int(np.sqrt(nt))
+    
+    A, B = 0,0
+    for i in range(nt):
+        A += tod[i]
+        B += tod[i] * np.exp(-1j * 2*np.pi* (i) / N)
+    A, B = np.abs(A)/nt, np.abs(B) * 2/nt
+    
+    tod_b = (tod + sumA * A) / (B + 0.000001) 
+    
+    Am,Bpmx,Bpmy = 0,0,0
+    
+    im = tod_b[0]
+    
+    fto = np.fft.fft( im[:,frecline] ) [initfrec:int(ny/2)]
+    kfo = np.fft.fftfreq(ny)
+    ind = np.argmax(np.abs(fto))
+    
+    if nef == 0: ne = int(1/kfo[ind + initfrec]) 
+    else: ne = nef
+    
+    print(ne)
+    
+    imts = []
+    for i in range(N):
+        for j in range(N):
+            im = tod_b[i*N+j]
+            
+            x = np.arange(nx)
+            y = np.arange(ny)
+            
+            for e in range(ne):
+                for f in range(ne):
+    
+                    imtr = im[f::ne,e::ne]
+                    
+                    csx = make_interp_spline(x[e::ne],imtr,1,axis=1)
+                    csy = make_interp_spline(y[f::ne],csx(x),1,axis=0)
+                    imc = csy(y)
+                    imts.append(imc)
+    
+                    
+                    Bpmx += imc * np.exp(-1j * 2*np.pi*e/ne) * np.exp(-1j * 2*np.pi*i/N) 
+                    
+                    Bpmy += imc * np.exp(-1j * 2*np.pi*f/ne) * np.exp(-1j * 2*np.pi*j/N) 
+    
+                    Am += imc
+                    # BPm += imc * np.exp(-1j * 2*np.pi*e/ne) * np.exp(-1j * 2*np.pi*t/nt) 
+                    
+                    
+            
+    Am = np.abs(Am) / (N**2*ne**2)
+    # Bm = np.abs(BPm) * 2/(nt*ne)
+    
+    Pmx = np.angle(Bpmx)
+    Pmy = np.angle(Bpmy)
 
+    return Pmx,Pmy, ne
 
 def recognice(ref,lims, scale=0.9e7, sigma=0.9, min_size=20, loci=[300,400,200,300]):
     """

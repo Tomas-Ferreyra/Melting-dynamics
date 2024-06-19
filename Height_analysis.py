@@ -3015,6 +3015,310 @@ plt.imshow( rho, extent=(0,35,-5,25) )
 plt.colorbar()
 plt.show()
 #%%
+# =============================================================================
+# Nusselt and Rayleigh (functions of z or time)
+# =============================================================================
+mu = 1.0016 #kg / ms
+nu = 1e-4 #m^2 / s
+kt = 1.4e-7 # m^2 / s
+ks = 1.4e-9 # m^2 / s
+Cb = 0.011 # kg / m^3 K^2
+b0 = 0.77 # kg^2 / m g
+g = 9.81 # m / s^2
+kappa = 0.598 # kg m / s^3 K
+La = 334e3 # m^2 / s^2
+delt = 30 # s
+rhoi = 916.8 # kg / m^3
+
+def rhots(T,Sk):
+    S = Sk /1000
+    a1, a2, a3, a4, a5 = 9.999e2, 2.034e-2, -6.162e-3, 2.261e-5, -4.657e-8
+    b1, b2, b3, b4, b5 = 8.020e2, -2.001, 1.677e-2, -3.060e-5, -1.613e-5
+    rho = a1 + a2*T + a3*T**2 + a4*T**3 + a5*T**4 + b1*S + b2*S*T + b3*S*T**2 + b4*S*T**3 + b5*S**2 * T**2
+    return rho
+
+Nuzn, Razn = [],[]
+for n in range(len(salis)):
+
+    xrn, yrn = xrts[n][0] / 1000, yrts[n][0] / 1000
+    hn, vts = halgts[n], ts[n]
+    pen2,pen1,ori,tini = np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan
+    for i in tqdm(range(1024)):
+        for j in range(1024):
+            devh = hn[:,i,j] / 1000 # to converts from mm to m
+            idx = ~np.isnan(devh)
+            if np.sum(idx) > 5: 
+                # pen2[i,j], pen1[i,j], ori[i,j] = np.polyfit(vts[idx], devh[idx], 2)
+                pen1[i,j], ori[i,j] = np.polyfit(vts[idx], devh[idx], 1) #if I want average melt rate over time, pen1 = meltrate
+                tini[i,j] = (vts[idx])[-1]
+    
+    rhoin, rhowa = rhots(temps[n], salis[n]), rhots(0, 0) 
+    gp = g * (rhoin - rhowa) / rhoin
+    
+    Nuz = - pen1 * rhoi * La / ( kappa * temps[n] ) * (yrn - np.nanmin(yrn))
+    Raz = np.abs(gp) / (kt * nu)  *  (yrn - np.nanmin(yrn))**3
+    
+    yrnma, yrnmi = np.nanmax(yrn), np.nanmin(yrn)
+    valyr = np.linspace(yrnmi, yrnma, 100)
+    
+    nuz,raz = [], []
+    for i in range(len(valyr)-1):
+        filt = (yrn >=  valyr[i]) * (yrn <=  valyr[i+1])
+        nuz.append( np.nanmean(Nuz[filt]) )
+        raz.append( np.nanmean(Raz[filt]) )
+   
+    Nuzn.append( nuz )
+    Razn.append( raz )
+#%%
+plt.figure()    
+# for n,sal in enumerate(salis):
+for n,sal in enumerate(salis[-2:-1]):
+    plt.plot(Razn[n],Nuzn[n],'.-', c=(1 * sal/30, 1 * (1-sal/30), 0), label=sal)
+plt.xscale('log')
+plt.yscale('log')
+# plt.legend()
+plt.grid()
+
+sss = np.logspace(1.4, 8.5, 10000)
+plt.plot( sss, sss**(1/3)*1.7e-1, 'k--' )
+
+sss = np.logspace(1.4, 8.5, 10000)
+plt.plot( sss, sss**(1/4)*9e-1, 'b--' )
+
+plt.show()
+#%%
+
+Nuzt, Razt = [],[]
+for n in range(len(salis)):
+
+    xrn, yrn = xrts[n][0] / 1000, yrts[n][0] / 1000
+    hn, vts = halgts[n], ts[n]
+    pen2,pen1,ori,tfin = np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan
+    for i in tqdm(range(1024)):
+        for j in range(1024):
+            devh = hn[:,i,j] /1000
+            idx = ~np.isnan(devh)
+            if np.sum(idx) > 5: 
+                pen2[i,j], pen1[i,j], ori[i,j] = np.polyfit(vts[idx], devh[idx], 2)
+                # pen1[i,j], ori[i,j] = np.polyfit(vts[idx], devh[idx], 1) #if I want average melt rate over time, pen1 = meltrate
+                tfin[i,j] = (vts[idx])[-1]
+    
+    rhoin, rhowa = rhots(temps[n], salis[n]), rhots(0, 0) 
+    gp = g * (rhoin - rhowa) / rhoin
+    
+    nut, rat = [], []
+    for i in range(len(vts)):
+        filt = tfin >= vts[i]
+        p1m, p2m = np.nanmean(pen1[filt]), np.nanmean(pen2[filt])
+        
+        nut.append( - (2*p2m*vts[i]+p1m) * rhoi * La / ( kappa * temps[n] ) * (np.nanmax(yrts[n][i] /1000) - np.nanmin(yrts[n][i] /1000)) )
+        rat.append( np.abs(gp) / (kt * nu)  *  ( np.nanmax(yrts[n][i] /1000) - np.nanmin(yrts[n][i] /1000) )**3  )
+        
+    Nuzt.append( nut )
+    Razt.append( rat )
+
+#%%
+
+plt.figure()
+for n,sal in enumerate(salis):
+    plt.plot(Razt[n],Nuzt[n],'.-', c=(1 * sal/30, 1 * (1-sal/30), 0), label=sal)
+plt.xscale('log')
+plt.yscale('log')
+# plt.legend()
+# plt.grid()
+
+plt.show()
+#%%
+
+Nu, Ra = [],[]
+memel = []
+for n in range(len(salis)):
+
+    xrn, yrn = xrts[n][0] / 1000, yrts[n][0] / 1000
+    hn, vts = halgts[n], ts[n]
+    pen2,pen1,ori,tfin = np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan, np.zeros((1024,1024))*np.nan
+    for i in tqdm(range(1024)):
+        for j in range(1024):
+            devh = hn[:,i,j] /1000
+            idx = ~np.isnan(devh)
+            if np.sum(idx) > 5: 
+                # pen2[i,j], pen1[i,j], ori[i,j] = np.polyfit(vts[idx], devh[idx], 2)
+                pen1[i,j], ori[i,j] = np.polyfit(vts[idx], devh[idx], 1) #if I want average melt rate over time, pen1 = meltrate
+                tfin[i,j] = (vts[idx])[-1]
+    
+    rhoin, rhowa = rhots(temps[n], salis[n]), rhots(0, 0) 
+    gp = g * (rhoin - rhowa) / rhoin
+
+    p1m, p2m = np.nanmean(pen1[filt]), np.nanmean(pen2[filt])
+    
+    memel.append( - p1m )
+        
+    Nu.append( - p1m * rhoi * La / ( kappa * temps[n] ) * (np.nanmax(yrts[n][0] /1000) - np.nanmin(yrts[n][0] /1000)) )
+    Ra.append( np.abs(gp) / (kt * nu)  *  ( np.nanmax(yrts[n][0] /1000) - np.nanmin(yrts[n][0] /1000) )**3  )
+#%%        
+plt.figure()
+plt.plot(Ra,Nu,'.', c=(1 * sal/30, 1 * (1-sal/30), 0), label=sal)
+plt.xscale('log')
+plt.yscale('log')
+# plt.legend()
+# plt.grid()
+plt.show()
+
+plt.figure()
+plt.plot(salis, memel, '.')
+plt.show()
+
+#%%
+# plt.figure()
+# plt.imshow(pen1)
+# plt.colorbar()
+# plt.show()
+# plt.figure()
+# plt.imshow(Raz)
+# plt.colorbar()
+# plt.show()
+
+plt.figure()
+plt.plot( Raz.flatten(), Nuz.flatten(), '.' )
+plt.xscale('log')
+plt.yscale('log')
+
+sss = np.logspace(1, 7, 10000)
+plt.plot( sss, sss**(1/3)*3e2, 'r-' )
+plt.plot( sss, sss**(1/2)*1e2, 'g-' )
+
+plt.show()
+#%%
+mu = 1.0016 #kg / ms
+nu = 1e-4 #m^2 / s
+kt = 1.4e-7 # m^2 / s
+ks = 1.4e-9 # m^2 / s
+Cb = 0.011 # kg / m^3 K^2
+b0 = 0.77 # kg^2 / m g
+g = 9.81 # m / s^2
+kappa = 0.598 # kg m / s^3 K
+La = 334e3 # m^2 / s^2
+delt = 30 # s
+rhoi = 916.8 # kg / m^3
+
+def rhots(T,Sk):
+    S = Sk /1000
+    a1, a2, a3, a4, a5 = 9.999e2, 2.034e-2, -6.162e-3, 2.261e-5, -4.657e-8
+    b1, b2, b3, b4, b5 = 8.020e2, -2.001, 1.677e-2, -3.060e-5, -1.613e-5
+    rho = a1 + a2*T + a3*T**2 + a4*T**3 + a5*T**4 + b1*S + b2*S*T + b3*S*T**2 + b4*S*T**3 + b5*S**2 * T**2
+    return rho
+
+asi = np.linspace(0,35,20)
+rhoin, rhowa = rhots(20, asi),  rhots(0, 0) 
+gp = g * (rhoin - rhowa) / rhoin
+L = 0.35
+
+Ra = np.abs(gp) / (kt * nu)  *  L**3
+
+plt.figure()
+plt.plot(asi,Ra,'.-')
+plt.yscale('log')
+plt.show()
+
+
+#%%
+# devh = hn.reshape( (len(hn), 1024*1024 ) )
+# pen2, pen1, ori = np.polyfit(vts, devh, 2)
+# pen2, pen1, ori = pen2.reshape((1024,1024)), pen1.reshape((1024,1024)), ori.reshape((1024,1024)) 
+
+plt.figure()
+plt.imshow(tini)
+plt.show()
+plt.figure()
+plt.imshow(pen2)
+plt.show()
+plt.figure()
+plt.imshow(pen1)
+plt.show()
+
+# tn = 50
+# mera = (pen2 *2 * vts[tn] + pen1) * (tini >= vts[tn])
+# plt.figure()
+# plt.imshow(mera)
+# plt.show()
+
+#%%
+
+a = np.array([0,1,2,3,4])
+b = np.array([2,4,6,8, np.nan])
+
+np.polyfit(a, b, 2)
+
+#%%
+mu = 1.0016 #kg / ms
+kt = 1.4e-7 # m^2 / s
+ks = 1.4e-9 # m^2 / s
+Cb = 0.011 # kg / m^3 K^2
+b0 = 0.77 # kg^2 / m g
+g = 9.81 # m / s^2
+kappa = 0.598 # kg m / s^3 K
+La = 334e3 # m^2 / s^2
+delt = 30 # s
+rhoi = 916.8 # kg / m^3
+
+th0 = 0.1 # m
+
+# Rass,Rats, Nus = [], [], []
+# for n in tqdm(range(len(salis))):
+n = 10
+    
+Rat, Ras, Nu1,Nu2 = [],[], [], []
+
+xa,ya = np.arange(1024), -np.arange(1024)
+dxyp,dxxp = np.gradient(xrts[n][0] / 1000, ya,xa)
+dyyp,dyxp = np.gradient(yrts[n][0] / 1000, ya,xa)
+dxxp[np.isnan(dxxp)], dyyp[np.isnan(dyyp)] = 0, 0
+
+Ap = np.trapz( np.trapz( dxxp * dyyp, xa, axis=1 ), -ya, axis=0 ) #not sure why -ya but needed for Ap positive
+Vp = th0 * Ap
+Vn, An = [Vp], [Ap]
+
+for i in range(1,len(ts[n])):
+    L = (np.nanmax( yrts[n][i] ) - np.nanmin( yrts[n][i] )) / 1000 # m
+    Rat.append( g * Cb * (temps[n])**2 * L**3 / (mu * kt) )
+    Ras.append( g * b0 * salis[n] * L**3 / (mu * ks) ) 
+    
+    # delh = np.nanmean( halgts[n][0] - halgts[n][i] ) / 1000 # m
+    # Nu1.append( rhoi * La * delh * L / (delt*i * kappa * temps[n]) )
+    
+    dxyp,dxxp = np.gradient(xrts[n][i] / 1000, ya,xa)
+    dyyp,dyxp = np.gradient(yrts[n][i] / 1000, ya,xa)
+    dxxp[np.isnan(dxxp)], dyyp[np.isnan(dyyp)] = 0, 0
+    
+    delh = ( halgts[n][i-1] - halgts[n][i] ) / 1000
+    delh[np.isnan(delh)] = 0
+    
+    Ap = np.trapz( np.trapz( dxxp * dyyp, xa, axis=1 ), -ya, axis=0 )
+    vi1 = np.trapz( np.trapz( delh * dxxp * dyyp, xa, axis=1 ), ya, axis=0 )
+    
+    Vp = th0 * Ap - 2 * vi1
+    Vn.append(Vp)
+    An.append(Ap)
+    
+    Nu1.append( rhoi * (Vn[-2]-Vn[-1]) / An[-1] * La  * L / (delt * kappa * temps[n]) )
+    
+    
+Rats.append(Rat)
+Rass.append(Ras)
+Nus.append(Nu1)
+#%%
+
+plt.figure()
+plt.plot(ts[n], np.array(Vn) * 10)
+plt.plot(ts[n], An)
+plt.show()
+
+plt.figure()
+plt.plot(Rat)
+# plt.plot(Ras)
+plt.show()
+
+
 
 #%%
 # =============================================================================
@@ -3229,16 +3533,23 @@ for i,j in enumerate(range(len(salis))):
     lmm.append( lmeas[i][imi] )
     lss.append( lstds[i][imi] )
     
+dSs_un = np.array( [23.38, 15.20, 4.06, 6.40 , 8.26 , 12.87, 14.80, 18.13, 21.90, 27.39, 10.26, 11.22, 2.31 , 0.00 ] )
+soin = np.argsort( dSs_un )
+dSs = dSs_un[soin]
+lambs = [15.56899116935976, 16.460074303488604, 18.09925904964528, 18.007158732094368, 19.64018037806087, 19.4887995962532, 20.267482589348546,
+ 20.850794145642915, 18.480350515471226, 19.725783416298484, 18.600138286902368, 22.704439216741143, 18.512399306214324, 7.8048467539888735]
+
 plt.figure()
 # plt.errorbar( [salis[l] for l in [0,3,8,1,10,12]] , lmm, yerr=lss, capsize=2, fmt='k.')
 plt.errorbar( salis , lmm, yerr=lss, capsize=2, fmt='k.', markersize=10)
+plt.plot( dSs, lambs, '.', markersize = 10 )
 # plt.legend()
 plt.ylim(0,70)
 plt.grid()
 plt.ylabel('Wavelenght (mm)', fontsize=12)
 plt.xlabel('S (g/kg)', fontsize=12)
-plt.xlim(5,25)
-# plt.savefig('./Documents/scawave_sal.png',dpi=400, bbox_inches='tight')
+# plt.xlim(5,25)
+plt.savefig('./Documents/com_expins.png',dpi=400, bbox_inches='tight')
 plt.show()
 
 plt.figure()
@@ -3343,19 +3654,20 @@ for n in tqdm(range(16)):
         hxx = hdxx * xdx**-2 - hdx * xdxx * xdx**-3
         hxy = hdxy * ydy**-1 * xdx**-1 - hdy * ydyx * ydy**-2 * xdx**-1
         
-        curv = 1/2 * ( (1 + hxx**2) * hyy + (1+ hyy*2) * hxx - 2 * hx * hy * hxy ) / (1 + hx**2 + hy**2)**(3/2) 
+        curv = 1/2 * ( (1 + hx**2) * hyy + (1+ hy**2) * hxx - 2 * hx * hy * hxy ) / (1 + hx**2 + hy**2)**(3/2) 
         curvs.append(curv)
     
     curvats.append(curvs)
-
-# plt.figure()
-# plt.imshow( halgts[n][i] )
-# plt.colorbar()
-# plt.show()
-# plt.figure()
-# plt.imshow( curv, cmap='gray' )
-# plt.colorbar()
-# plt.show()
+#%%
+n, i = 11, -20
+plt.figure()
+plt.imshow( halgts[n][i] )
+plt.colorbar()
+plt.show()
+plt.figure()
+plt.imshow( curvats[n][i], vmin=-0.2, vmax=0.2 )
+plt.colorbar()
+plt.show()
 #%%
 def compg(hist,bine,curv):
     xg = np.linspace(bine[0],bine[-1],1000)
@@ -3365,31 +3677,57 @@ def compg(hist,bine,curv):
     norm, argu = std * np.sqrt(2*np.pi), ((xg-mea)/std)**2
     return xg, 1/norm * np.exp(-1/2 * argu)
 
+n = 4
 plt.figure()
+cmap,cmm = customcmap(0, 90*0.5)
 
-for i in [10,20,30,40,50,60]:
-    curv = curvs[i]
+for i in [10,30,50,70]:
+# for i in [90,95,100]:
+    curv = curvats[n][i]
     curvl = curv[~np.isnan(curv)]
     mee, sii = np.mean(curvl), np.std(curvl)
     
-    hist, bine = np.histogram( curvl, bins=200, density=True )
-    # histn, bine = np.histogram( (curvl-mee)/sii , bins=200, density=True )
+    # histn, bine = np.histogram( curvl, bins=150, density=True )
+    histn, bine = np.histogram( (curvl-mee)/sii , bins=200, density=True )
     binc = (bine[1:] + bine[:-1]) / 2
 
-    # xg, gg = compg(hist,bine,curv)
+    # if i == 90: xg, gg = compg(hist,bine,curv)
 
-    plt.plot(binc, hist, label=i)
+    plt.plot(binc, histn, label=str(i*0.5)+' min', c=cmap(i/2 / (90*0.5) ) )
     
-# xg = np.linspace(-10,10,1000)
-# gg = 1/np.sqrt(2*np.pi) * np.exp(-1/2 * xg**2)
-# plt.plot(xg, gg, '--')
+xg = np.linspace(-10,10,1000)
+gg = 1/np.sqrt(2*np.pi) * np.exp(-1/2 * xg**2)
+plt.plot(xg, gg, '--')
 plt.grid()
 plt.legend()
-# plt.yscale('log')
+plt.yscale('log')
 # plt.xlim(-0.5,0.5)
+plt.ylabel('PDF')
+plt.xlabel(r'Curvature (mm$^{-1}$)')
+plt.ylim(7e-5, 1)
+plt.xlim(-7.5,7.5)
+# plt.savefig('./Documents/pdfcurv.png',dpi=400, bbox_inches='tight')
 plt.show()
 
 #%%
+n = 4
+
+nt,_,_ = np.shape(halgts[n])
+skw = []
+for i in range(nt):
+    curv = curvats[n][i]
+    cur =  curv[~np.isnan(curv)]
+    fi = (cur > -0.4 ) * (cur < 0.4)
+    skw.append( skew( cur[fi] ) ) 
+    
+    
+plt.figure()
+plt.plot( np.arange(0,nt)*0.5 , skw, '-' )
+plt.grid()
+plt.ylabel('Skewness')
+plt.xlabel('Time (min)')
+# plt.savefig('./Documents/skewn.png',dpi=400, bbox_inches='tight')
+plt.show()
 
 #%%
 # =============================================================================
@@ -3456,6 +3794,56 @@ def welch2d(ha, yh, xh, Ly, Lx, D=0.5, wind=('hann')):
             
     return ks, sf
 
+def welch2d_2(ha, yh, xh, Ly, Lx, D=0.5, wind=('hann')):
+    '''
+    D: overlap (between 0 and 1) 
+    wind: Tuple detailing the name of desired window and relevant value (if neccesary for the window)    
+    
+    Possible windows: hannig, hamming, blackman, kaiser, tukey 
+    kasiser and tukey windows need the extra parameter
+
+    Recommended: 
+        wind = ('hann')
+        D = 0.5
+    '''
+    
+    ny, nx  = np.shape(ha)
+
+    My, Mx = int( ny / (Ly + D*(1-Ly)) ), int( nx / (Lx + D*(1-Lx)) )
+    ovy, ovx = ceil(My*D), ceil(Mx*D)
+
+    haw = []
+    for u in range(Ly):
+        for v in range(Lx):
+            haw.append( ha[ u*My - u*ovy : (u+1)*My - u*ovy, v*Mx - v*ovx : (v+1)*Mx - v*ovx ] )
+            
+    dyt = yh[:-1] - yh[1:]
+    dy = np.nanmean(dyt)  #the average distance (in mm) of pixels in y direc (varies in 0.3% only)
+    dxt = xh[:,1:] - xh[:,:-1]
+    dx = np.nanmean(dxt)  #analogous to y direc        
+    
+    kfs, tfs, sfs = [], [], []
+    for u in range(len(haw)):
+        
+        hw = haw[u] * window(wind, np.shape(haw[u]) )
+        
+        hwf = np.fft.fftshift( np.fft.fft2(hw) )
+        ky = np.fft.fftfreq( np.shape(haw[u])[0], d=dy )
+        kx = np.fft.fftfreq( np.shape(haw[u])[1], d=dx )
+        kx,ky = np.meshgrid(kx,ky)
+        kx,ky = np.fft.fftshift(kx), np.fft.fftshift(ky)
+        
+        k = np.sqrt(ky**2 + kx**2)
+        the = np.arctan2(ky,kx)
+        Sn = np.abs( hwf )**2
+                
+        kfs.append(k)
+        tfs.append(the)
+        sfs.append(Sn)
+
+    # ks,sf = kfs[0], np.mean(sfs,axis=0)
+    return kfs, tfs, sfs
+
 def customcmap(vmin,vmax):
     cdict = {'red':   [(0.0,  0.0, 1.0),
                        (0.5,  0.5, 0.5),
@@ -3473,8 +3861,57 @@ def customcmap(vmin,vmax):
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
     cmm = ScalarMappable(norm=norm, cmap=cmap)
     return cmap, cmm
+
+def polyfit2(halg,mmmm,xr,yr, order=2):
+    haltura = (halg*mmmm)
+    hfit,xfit,yfit = haltura[~np.isnan(haltura)], xr[~np.isnan(haltura)], yr[~np.isnan(haltura)]
+    
+    poli = []
+    for i in range(order+1):
+        for j in range(order+1):
+            if i+j<=order: poli.append( xfit**i * yfit**j )
+    A = np.array(poli).T
+    # print(len(poli))
+    # A = np.array([xfit*0+1,xfit,yfit,xfit**2,xfit*yfit,yfit**2]).T
+    
+    coeff, r, rank, s = np.linalg.lstsq(A, hfit, rcond=None)
+    return coeff, r, rank, s  
+
+def pol22(coeff,xr,yr,order=2):
+    poo, cof = 0, 0
+    for i in range(order+1):
+        for j in range(order+1):
+            if i+j<=order: 
+                poo += coeff[cof] * xr**i * yr**j
+                cof += 1
+    return poo
+
+def polyfit(n,halg,mmmm,xr,yr, order=2):
+    haltura = (halg*mmmm)[n]
+    hfit,xfit,yfit = haltura[~np.isnan(haltura)], xr[n][~np.isnan(haltura)], yr[n][~np.isnan(haltura)]
+    
+    poli = []
+    for i in range(order+1):
+        for j in range(order+1):
+            if i+j<=order: poli.append( xfit**i * yfit**j )
+    A = np.array(poli).T
+            
+    # A = np.array([xfit*0+1,xfit,yfit,xfit**2,xfit*yfit,yfit**2]).T
+    
+    coeff, r, rank, s = np.linalg.lstsq(A, hfit, rcond=None)
+    return coeff, r, rank, s  
+
+def pol2(coeff,xr,yr,n,order=2):
+    poo, cof = 0, 0
+    for i in range(order+1):
+        for j in range(order+1):
+            if i+j<=order: 
+                poo += coeff[cof] * xr[n]**i * yr[n]**j
+                cof += 1
+    return poo
+
 #%%
-n = 0
+n = 12
 i = 60
 
 bbu,bbd,bbl,bbr = insr(halgts, n, i=-2)
@@ -3580,24 +4017,55 @@ plt.xscale('log')
 plt.show()
 
 #%%
+n = 10
+i = 30
+
+hag = halgts[n][i]
+xr, yr = xrts[n][i], yrts[n][i]
+mms = hag > -1e5
+
+coef, a1,a2,a3 = polyfit2( hag, mms, xr, yr, order=2)
+poh = pol22(coef,xr,yr,order=2)
 
 
+# print(coef1 - coef2)
+
+plt.figure()
+plt.imshow(hag)
+plt.colorbar()
+plt.show()
+plt.figure()
+plt.imshow(poh)
+plt.colorbar()
+plt.show()
+plt.figure()
+plt.imshow(hag - poh)
+plt.colorbar()
+plt.show()
+
+#%%
 
 #%%
 # =============================================================================
 # power law with welch 
 # =============================================================================
-n = 0
+n = 11
 nt = np.shape( halgts[n] )[0] - 1
 
 plt.figure()
-cmap,cmm = customcmap(0, 70)
+cmap,cmm = customcmap(0, nt*0.5)
 
 for i in tqdm(range(0,nt,5)):
     bbu,bbd,bbl,bbr = insr(halgts, n, i=i)
-    ha = halgts[n][i][bbu:bbd,bbl:bbr]
-    yh = yrts[n][i]
-    xh = xrts[n][i]
+    hao = halgts[n][i][bbu:bbd,bbl:bbr]
+    yh = yrts[n][i][bbu:bbd,bbl:bbr]
+    xh = xrts[n][i][bbu:bbd,bbl:bbr]
+    
+    mms = hao > -1e5
+
+    coef, a1,a2,a3 = polyfit2( hao, mms, xh, yh, order=2)
+    poh = pol22(coef,xh,yh,order=2)
+    ha = hao - poh
     
     D = 0.5
     ks, sf = welch2d(ha,yh,xh, 3, 2)
@@ -3615,7 +4083,8 @@ for i in tqdm(range(0,nt,5)):
     # plt.plot(ks,sf,'.')
     plt.plot(kb,sms,'-', c=cmap(i/nt))
     
-plt.plot(kb[:55],kb[:55]**-4*1e-2,'--')
+plt.plot(kb[:55],kb[:55]**-4*1e-1,'--')
+# plt.plot(kb[:55],kb[:55]**-5*1e-2,'--')
 plt.grid()
 plt.yscale('log')
 plt.xscale('log')
@@ -3624,6 +4093,88 @@ plt.colorbar(cmm)
 plt.show()
 
 #%%
+n = 3
+nt = np.shape( halgts[n] )[0] - 1
+
+plt.figure()
+cmap,cmm = customcmap(0, nt*0.5)
+
+for i in tqdm([0,25,55]): # tqdm(range(0,nt,5)):
+    bbu,bbd,bbl,bbr = insr(halgts, n, i=i)
+    hao = halgts[n][i][bbu:bbd,bbl:bbr]
+    yh = yrts[n][i][bbu:bbd,bbl:bbr]
+    xh = xrts[n][i][bbu:bbd,bbl:bbr]
+    
+    mms = hao > -1e5
+
+    coef, a1,a2,a3 = polyfit2( hao, mms, xh, yh, order=2)
+    poh = pol22(coef,xh,yh,order=2)
+    ha = hao - poh
+
+    kfs, tfs, sfs = welch2d_2(ha,yh,xh, 3, 2)   
+    
+    Sns, sks = [], []
+    for l in range(len(kfs)):
+    
+        indf = np.argsort(kfs[l].flatten())
+        flk = (kfs[l].flatten())[indf]
+        flt = (tfs[l].flatten())[indf]
+        fls = (sfs[l].flatten())[indf]
+    
+        ints, kss = [], []
+        kig, tig, sig = [flk[0]], [flt[0]], [fls[0]]
+        for j in range(1,len(flk)):
+            if flk[j] == kig[-1]:
+                kig.append(flk[j])
+                tig.append(flt[j])
+                sig.append(fls[j])
+            else:
+                indt = np.argsort(tig)
+                ski, sti, ssi = np.array(kig)[indt], np.array(tig)[indt], np.array(sig)[indt]
+                
+                ints.append( np.trapz(ssi * ski, sti) )
+                kss.append( ski[-1] )
+                
+                kig, tig, sig = [flk[j]], [flt[j]], [fls[j]]
+                
+        Sns.append(ints)
+        sks.append(kss)
+        
+    ks, Sn = np.array(sks[0]), np.mean(Sns, axis=0)
+    
+    lar = 250
+    kb = np.linspace(0, np.max(ks), lar)
+    dk = kb[1]-kb[0]
+    
+    sms = []
+    for j in range(lar):
+        filt = (ks < kb[j]+dk/2) * (ks > kb[j]-dk/2)
+        sm = np.median( Sn[filt] )
+        sms.append(sm)
+
+    # plt.plot(ks,sf,'.')
+    # plt.plot(ks / 2/np.pi,Sn,'.', c=cmap(i/nt))
+    plt.plot(kb /2/np.pi,sms,'-', c=cmap(i/nt), label=str(i/2)+' min')
+    
+plt.plot(kb[8:80] / 2/np.pi ,(kb[8:80]/ 2/np.pi)**-4*1e-2,'--', label=r'k$^{-4}$')
+plt.grid()
+plt.xscale('log')
+plt.yscale('log')
+# cba = plt.colorbar(cmm)
+# cba.set_label('Time (min)', rotation=270)
+plt.xlabel(r'$k/2\pi$ (mm$^{-1}$)')
+plt.ylabel(r'$S_{\eta}$ (mm$^3$) ')
+# plt.savefig('./Documents/powspec.png',dpi=400, bbox_inches='tight')
+plt.legend()
+plt.show()
+
+#%%
+
+a = np.array([0,1,3])
+a[[0]]
+
+#%%
+
 #posibles windows:
 # rectangular
 # triangular
@@ -3634,9 +4185,177 @@ plt.show()
 # tukey (agregue yo)
 # gaussian (agregue yo)
 
+# plt.figure()
+# plt.imshow(window(('hann'), np.shape(haw[u]) ))
+# plt.show()
+
+#%%
+# =============================================================================
+# Normal melt rate
+# =============================================================================
+def normelt(xr1,yr1,h1, xr2,yr2,h2, ven=20 ):
+    ny,nx = np.shape(h1)
+
+    xdy, xdx = np.gradient( xr1, 1,1 )
+    ydy, ydx = np.gradient( yr1, 1,1 )
+    hdy, hdx = np.gradient( h1, 1,1  )
+    
+    hy, hx = hdy * ydy**-1, hdx * xdx**-1
+    
+    mes = np.zeros_like(h1)
+    t21, t32, t43 = 0,0,0
+    for i in tqdm(range(nx)):
+        for j in range(ny):
+            
+            if np.isnan(h1[j,i]): continue
+            
+            t1 = time()
+            
+            xv, yv, hv = xr2[j-ven:j+ven, i-ven:i+ven], yr2[j-ven:j+ven, i-ven:i+ven], h2[j-ven:j+ven, i-ven:i+ven]
+    
+            resth = h1[j,i] - hv        
+            dist2 = (xv - xr1[j,i] - hx[j,i] * (resth))**2 + (yv - yr1[j,i] - hy[j,i] * (resth))**2
+            
+            t2 = time()
+            t21 += t2-t1
+    
+            jmi, imi = np.unravel_index(dist2.argmin(), dist2.shape)
+            jmi = jmi + j-ven
+            imi = imi + i-ven
+    
+            t3 = time()
+            t32 += t3-t2
+    
+            mera = np.sqrt( (xr1[j,i] - xr2[jmi,imi])**2 + (yr1[j,i] - yr2[jmi,imi])**2 + (h1[j,i] - h2[jmi,imi])**2 )
+            mes[j,i] = mera
+    
+            t4 = time()
+            t43 += t4-t3
+
+    print('\n',t21, t32, t43)
+    return mes
+
+
+#%%
+n = -2
+xa,ya = np.arange(1024), -np.arange(1024)
+gt,gy,gx = np.gradient(halgts[n], ts[n]/60,ya,xa)
+
+dxt,dxyp,dxxp = np.gradient(xrts[n] , ts[n]/60,ya,xa)
+dyt,dyyp,dyxp = np.gradient(yrts[n] , ts[n]/60,ya,xa)
+
+gymas = gy / dyyp
+gxmas = gx / dxxp 
+gtmas = gt 
+#%%
+i = 70
+
+xr1,yr1,h1 = xrts[n][i], yrts[n][i], halgts[n][i]
+xr2,yr2,h2 = xrts[n][i+1], yrts[n][i+1], halgts[n][i+1]
+
+mera = normelt(xr1,yr1,h1, xr2,yr2,h2, ven=20 ) / 0.5
+#%%
+mera[ mera==0 ] = np.nan
+
 plt.figure()
-plt.imshow(window(('hann'), np.shape(haw[u]) ))
+plt.imshow( h1 )
+plt.colorbar()
+plt.show()        
+
+plt.figure()
+plt.imshow( -gtmas[i] )
+plt.colorbar()
+plt.show()        
+
+plt.figure()
+plt.imshow( mera, vmax = 1.6, vmin=0.6 )
+plt.colorbar()
+plt.show()      
+
+plt.figure()
+plt.imshow( -gtmas[i] - mera, vmin=-0.1, vmax=0.4)
+plt.colorbar()
+plt.show()        
+#%%
+plt.figure()
+plt.hist( (-gtmas[i]).flatten(), bins=50)
 plt.show()
+plt.figure()
+plt.hist( mera.flatten(), bins=50)
+plt.show()
+plt.figure()
+plt.hist( (-gtmas[i] - mera).flatten(), bins=50)
+plt.show()
+#%%
+# plt.figure()
+# plt.plot( xr1[500,:], h1[500,:] )
+# plt.plot( xr2[500,:], h2[500,:] )
+# plt.grid()
+# plt.show()    
+
+plt.figure()
+# plt.plot( xr1[500,:], h1[500,:] )
+# plt.plot( xr1[500,:], -gtmas[i][500,:] /2  )
+# plt.plot( xr2[500,:], mera[500,:] /2 * 10 )
+plt.grid()
+plt.show()    
+
+plt.figure()
+plt.plot( yr1[:,500], gymas[i][:,500]  )
+plt.plot( yr1[:,500], -gtmas[i][:,500] /2  )
+plt.plot( yr1[:,500], mera[:,500] /2  )
+plt.grid()
+plt.show()
+#%%
+x,dx = np.linspace(-10,10,1000, retstep=True)
+y,dy = np.linspace(-10,10,1000, retstep=True)
+x, y = np.meshgrid(x,y)
+
+h1 = 5 * np.cos(x * y / 20)
+hy, hx = np.gradient(h1, dy,dx)
+norm = np.array([hx, hy, -np.ones_like(hx)])
+
+h2 = 5 * np.cos(x * y / 20) - 0.5
+
+ven = 15
+mes = np.zeros_like(h1)
+t21, t32, t43 = 0,0,0
+for i in tqdm(range(51,949)):
+    for j in range(51,949):
+
+        t1 = time()
+        
+        xv, yv, hv = x[j-ven:j+ven, i-ven:i+ven], y[j-ven:j+ven, i-ven:i+ven], h2[j-ven:j+ven, i-ven:i+ven]
+
+        resth = h1[j,i] - hv        
+        dist2 = (xv - x[j,i] - hx[j,i] * (resth))**2 + (yv - y[j,i] - hy[j,i] * (resth))**2
+        
+        t2 = time()
+        t21 += t2-t1
+
+        jmi, imi = np.unravel_index(dist2.argmin(), dist2.shape)
+        jmi = jmi + j-ven
+        imi = imi + i-ven
+
+        t3 = time()
+        t32 += t3-t2
+
+        mera = np.sqrt( (x[j,i] - x[jmi,imi])**2 + (y[j,i] - y[jmi,imi])**2 + (h1[j,i] - h2[jmi,imi])**2 )
+        mes[j,i] = mera
+
+        t4 = time()
+        t43 += t4-t3
+
+print(imi,jmi)
+print(t21, t32, t43)
+#%%
+
+for i in range(10):
+    # print(i)
+    if i%2 == 0: continue
+    print(i)
+
+
 
 #%%
 # =============================================================================
@@ -3659,7 +4378,7 @@ plt.xlabel('Temperature (°C)',fontsize=12)
 plt.ylabel(r'Density (kg m$^-3$)',fontsize=12)
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
-plt.savefig('./Documents/densano.png',dpi=400, bbox_inches='tight')
+# plt.savefig('./Documents/densano.png',dpi=400, bbox_inches='tight')
 plt.show()
 
 #%%
