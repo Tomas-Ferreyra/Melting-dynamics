@@ -1690,7 +1690,7 @@ for n in tqdm(range(len(ds_v))):
 mes_t, sed_t = [], []
 for n in tqdm(range(len(ds_t))):
     t,x,y = ts_t[n], xns_t[n][0], yns_t[n][:,0]
-   ,gx = np.gradient(hints_t[n], t,y,x)
+    gt,gy,gx = np.gradient(hints_t[n], t,y,x)
     xs,ys = xns_t[n], yns_t[n]
     
     area = np.trapz( np.trapz(~np.isnan(hints_t[n]) * 1.0, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
@@ -3073,44 +3073,7 @@ plt.show()
 # len(centss_v[n][i][:,0]), len( lys_v[n][i] * dy )
 #%%
 #Violin area
-
-from seaborn import violinplot
-
-ns = [1,10,12] #[8,10,13]
-ies = [30,40,50,60,70,80,90]
-
-# daa = [ (sscas_v[8][-10:]).flatten(), ( sscas_v[8][-10:]).flatten() ] 
-# daa = [ sscas_v[8][i], sscas_v[10][i], sscas_v[13][i] ] 
-daa = [ np.concatenate(sscas_v[ns[1]][i-5:i+5]) for i in ies ] 
-# daa = [ np.concatenate(sscas_v[n][-20:]) for n in ns ] 
-
-plt.figure()
-
-# plt.violinplot( daa, positions=ts_v[ns][ies]/60, widths=1, showmeans=True)
-# plt.violinplot( daa, positions=salis_v[ns], widths=1, showextrema=False, showmeans=True )#, showmeans=True,
-plt.violinplot( daa, positions=ts_v[ns[1]][ies]/60, widths=3.5, showextrema=False, showmeans=True, points=100, bw_method='scott' )#, showmeans=True,
-plt.title('Salinity 15 g/kg')
-
-# daa = [ np.concatenate(sscas_v[8][i-5:i+5]) for i in ies ] 
-# plt.violinplot( daa, positions=np.array(ies)/2, widths=4, showmeans=True)
-
-# daa = [ np.concatenate(sscas_v[10][i-5:i+5]) for i in ies ] 
-# plt.violinplot( daa, positions=np.array(ies)/2, widths=4, showmeans=True, showextrema=False )
-
-
-# daa = [ np.concatenate(sscas_v[13][i-5:i+5]) for i in ies ] 
-# plt.violinplot( daa, positions=np.array(ies)/2, widths=4, showmeans=True)
-
-# plt.show()
-
-# plt.figure()
-# for i in range(len(sscas_v[ns])):
-#     plt.errorbar(ts_v[ns][i]/60, np.nanmean(sscas_v[ns][i]), yerr= np.nanstd(sscas_v[ns][i]), fmt='ko', markersize=5, zorder=1, alpha=.5)
-
-plt.show()
-
-#%%
-def barviolin(data, x = 0, height=1.0, width=1.0, bins=20, alpha=0.5, color=0):
+def barviolin(data, x = 0, height=1.0, width=1.0, bins=20, alpha=0.5, color=[]):
     """
     data: list of data for histogram
     x: float or list of len(data). horizontal position of the data 
@@ -3134,30 +3097,19 @@ def barviolin(data, x = 0, height=1.0, width=1.0, bins=20, alpha=0.5, color=0):
 
 plt.figure()
 
-# i = 90
-# daa1 = np.concatenate(sscas_v[ns[1]][i-5:i+5])
-# wid,bed = np.histogram(daa1, bins=20)
-# bec, hei = (bed[1:] + bed[:-1])/2, bed[1:] - bed[:-1]
-# lefts = 10 - 0.5 * wid
-# plt.barh( bec, wid, hei*1., left = lefts )
-
-# i = 80
-# daa1 = np.concatenate(sscas_v[ns[1]][i-5:i+5])
-# wid,bed = np.histogram(daa1, bins=20)
-# bec, hei = (bed[1:] + bed[:-1])/2, bed[1:] - bed[:-1]
-# lefts = 100 - 0.5 * wid
-# plt.barh( bec, wid, hei*1., left = lefts )
-
-ns = [1,10,12] #[8,10,13]
+n = 12 #[1,10,12] #[8,10,13]
 ies = [30,40,50,60,70,80,90]
-daa = [ np.concatenate(sscas_v[ns[2]][i-5:i+5]) for i in ies ] 
 
-col = (0.5,1-salis_v[ns[2]]/35,salis_v[ns[2]]/35)
-
-barviolin(daa, x=ts_v[ns[1]][ies]/60, width = 1e4, bins=15, alpha=0.6, color=col)
+for n in [11,12]:
+    dx = xns_v[n][0,1] - xns_v[n][0,0]
+    dy = yns_v[n][0,0] - yns_v[n][1,0]
+    daa = [ np.concatenate(sscas_v[n][i-5:i+5]) * dx*dy for i in ies ] 
+    # col = (0.5,1-salis_v[n]/35,salis_v[n]/35)
+    col = (n/12,(n-10)/3,0)
+    barviolin(daa, x=ts_v[n][ies]/60, width = 1500, bins=10, alpha=0.6, color=col)
 
 # plt.violinplot( daa, positions=ts_v[ns[1]][ies]/60, widths=3.5, showextrema=False, showmeans=True, points=100, bw_method='scott' )#, showmeans=True,
-
+plt.xlim(left=12)
 plt.show()
 
 #%%

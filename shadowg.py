@@ -41,6 +41,9 @@ from skimage.segmentation import felzenszwalb, mark_boundaries, watershed, chan_
 from skimage.restoration import unwrap_phase as unwrap
 from skimage.feature import peak_local_max, canny
 from skimage.transform import rescale, resize, hough_circle, hough_circle_peaks
+from sklearn.neighbors import NearestNeighbors
+
+import networkx as nx
 
 import uncertainties as un
 from uncertainties import unumpy
@@ -563,3 +566,558 @@ np.mean(np.concatenate((distx[filx],disty[fily]))), np.std(np.concatenate((distx
 # np.mean(distx[filx]),np.std(distx[filx]), np.mean(disty[fily]),np.std(disty[fily])
 
 #%%
+# =============================================================================
+# Shadow opaque 30°
+# =============================================================================
+
+file = ['/Volumes/Ice blocks/so_s0_t30/_DSC','.JPG']
+
+ims = []
+for i in tqdm(range(1693,1698)):
+    ims.append(imageio.imread(file[0]+str(i)+file[1])[400:4800,1400:6900,0])
+
+back = np.mean(np.array(ims),axis=0)
+
+ims = []
+for i in tqdm(range(1590,1672)):
+    ims.append(imageio.imread(file[0]+str(i)+file[1])[400:4800,1400:6900,0])
+
+ims = np.array(ims)
+
+#%%
+d = 5 / 77.48104145562611  # mm/px, error = 0.0012417621082226739 mm/px
+
+t1 = time()
+imts = []
+tramos = []
+for i in tqdm(range(len(ims))):
+    imt = sobel(ims[i] - back)
+    lab = label(imt<1.5)
+    num = np.median(lab[1600:2000,2200:2600])
+    imb = remove_small_holes( binary_closing(lab==num, disk(10)), area_threshold=1e5)
+    imts.append(imb)
+    
+    edd = imb * 1. - binary_erosion(imb) * 1.
+    yed,xed = np.where(edd)
+
+    edge = []
+    for j in range(len(xed)):
+        edge.append([xed[j],yed[j]])
+
+    clf = NearestNeighbors(n_neighbors=2).fit(edge)
+    G = clf.kneighbors_graph()
+    T = nx.from_scipy_sparse_array(G)
+    order = list(nx.dfs_preorder_nodes(T, 0))
+    tra_ord = np.array(edge)[order]
+    tramos.append(tra_ord[50:-50,:])
+
+t2 = time()
+print(t2-t1)
+
+#%%
+xpi, ypi = [], [] 
+for i in tqdm(range(0,len(tramos),1)):  #46,47
+
+    yed, xed = 5500 - tramos[i][:,0], tramos[i][:,1]
+    ay,ax = np.argmax(yed), np.argmax(xed)
+    part = np.sort( [ay,ax] )
+    
+    if i == 46:
+        ffax = np.concatenate( (xed[4930:5269:1], xed[9705:6250:-1]) )
+        ffay = np.concatenate( (yed[4930:5269:1], yed[9705:6250:-1]) )
+        
+    elif i == 47:
+        ffay, ffax = yed[5510:9280], xed[5510:9280]
+        
+    else:
+        ffax, ffay = xed[part[0]:part[1]], yed[part[0]:part[1]]
+        
+    xpi.append(ffax)
+    ypi.append(ffay)
+
+lre = linregress( xpi[0], ypi[0] )
+angled = 90 + np.arctan(lre[0]) * 180/np.pi
+angler = angled * np.pi/180
+
+masxr = [ xpi[i] * np.cos(angler) + ypi[i] * np.sin(angler) for i in range(len(xpi)) ]
+masyr = [ -xpi[i] * np.sin(angler) + ypi[i] * np.cos(angler) for i in range(len(xpi)) ]
+
+
+xes, yes = masxr[0], masyr[0]
+pixx = np.arange(len(yes))
+
+lreg = linregress(pixx, yes)
+ygr = pixx * lreg[0] + lreg[1]
+
+xgr = []
+xgr.append(np.interp(ygr, yes, xes, left=np.nan, right=np.nan))
+for i in range(1,len(xpi)):
+    xes, yes = masxr[i], masyr[i]
+    spe = int( np.sign( linregress(np.arange(len(yes)), yes)[0] ))
+    xgr.append(np.interp(ygr, yes[::spe], xes[::spe], left=np.nan, right=np.nan))
+xgr = np.array(xgr) * d
+
+ts = np.arange(len(xgr)) * 30
+
+pend2, pend1, nflt = [],[],[]
+for line in range(len(xgr.T)):
+    flt = np.isnan(xgr[:,line])
+    if np.sum(~flt) > 19:
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg = np.polyfit(ts[~flt], xgr[:,line][~flt], 2)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
+        nflt.append(np.sum(~flt))
+    else:
+        pend2.append(np.nan)
+        pend1.append(np.nan)
+        nflt.append(np.sum(~flt))
+pend2, pend1 = np.array(pend2), np.array(pend1)
+
+flt = ~np.isnan(pend)
+# print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
+print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s' )
+
+#%%
+i = 53
+
+yed, xed = 5500 - tramos[i][:,0], tramos[i][:,1]
+ay,ax = np.argmax(yed), np.argmax(xed)
+
+ini = 0
+fin = 1
+
+plt.figure()
+# plt.imshow(imts[i])
+plt.imshow( (ims[i].T)[::-1] )
+# plt.plot( tramos[i][:,0], tramos[i][:,1],'r-' )
+plt.plot( xed[ini:-fin],yed[ini:-fin], 'r-' )
+plt.plot(xpi[i], ypi[i], 'k-' )
+
+plt.show()
+
+
+
+plt.figure()
+for i in range(0,70,5):
+    plt.plot(masxr[i],masyr[i], 'r.-')
+    plt.plot(xgr[i], ygr, 'b.-')
+plt.show()
+
+plt.figure()
+
+for i in range(0,70,5):
+    plt.plot( xgr[i], ygr, 'r-' )
+plt.plot(xgr[:, 1000], [ygr[1000]]*82, '.-'  )
+
+# plt.plot(ts, xgr[:, 1000] , '.-'  )
+
+plt.show()
+
+#%%
+
+# xgr = []
+# xgr.append(np.interp(ygr, yes, xes, left=np.nan, right=np.nan))
+
+i = 5
+xes, yes = masxr[i], masyr[i]
+spe = int( np.sign( linregress(np.arange(len(yes)), yes)[0] ))
+print(spe)
+xgr = np.interp(ygr, yes[::spe], xes[::spe], left=np.nan, right=np.nan)
+
+# xgr
+
+plt.figure()
+plt.plot(xes,yes)
+plt.plot(xgr,ygr)
+# plt.plot(yes)
+plt.show()
+
+#%%
+plt.figure()
+for i in range(4,len(tramos),7):  #46,47
+# for i in [46]:
+
+    yed, xed = 5500 - tramos[i][:,0], tramos[i][:,1]
+    ay,ax = np.argmax(yed), np.argmax(xed)
+    part = np.sort( [ay,ax] )
+    
+    if i == 46:
+        ffax = np.concatenate( (xed[4930:5269:1], xed[9705:6250:-1]) )
+        ffay = np.concatenate( (yed[4930:5269:1], yed[9705:6250:-1]) )
+
+        
+    elif i == 47:
+        ffay, ffax = yed[5510:9280], xed[5510:9280]
+        
+    else:
+        ffax, ffay = xed[part[0]:part[1]], yed[part[0]:part[1]]
+    
+    plt.plot(xed, yed, 'g-' )    
+    plt.plot(ffax,ffay, 'r-' )
+    
+    # plt.plot( yed, 'g-' )
+    # plt.plot( xed, 'r-' )
+    
+    # plt.plot( np.gradient( gaussian(yed,0) ,gaussian(xed,0) ) ,'r-' )
+    # plt.plot( np.gradient( gaussian(yed,20), gaussian(xed,20) ) ,'g-' )
+plt.gca().invert_yaxis()
+plt.show()
+
+
+# plt.figure()
+# # for i in range(0,82,5):
+#     # yed, xed = tramos[i][:,0], tramos[i][:,1]
+# #     plt.plot( xed,yed ,'r-' )
+# plt.show()
+
+
+
+#%%
+i = 46
+
+yed, xed = 5500 - tramos[i][:,0], tramos[i][:,1]
+
+ini = 4930
+fin = 5269
+
+dex = np.concatenate( (xed[4930:5269:1], xed[9705:6250:-1]) )
+dey = np.concatenate( (yed[4930:5269:1], yed[9705:6250:-1]) )
+
+plt.figure()
+
+plt.plot( xed, yed, 'r.' )
+plt.plot( dex , dey, 'b.-' )
+# plt.plot( xed[ini:fin], yed[ini:fin], 'g.-' )
+
+plt.gca().invert_yaxis()
+plt.show()
+
+#%%
+i = 47
+
+yed, xed = 5500 - tramos[i][:,0], tramos[i][:,1]
+
+ini = 5510
+fin = 9280
+
+plt.figure()
+
+plt.plot( xed, yed, 'r.' )
+# plt.plot( dex , dey, 'b.-' )
+plt.plot( xed[ini:fin], yed[ini:fin], 'g.-' )
+
+plt.gca().invert_yaxis()
+plt.show()
+#%%
+# =============================================================================
+# Calibration
+# =============================================================================
+file = '/Volumes/Ice blocks/so_s0_t30/_DSC1686.JPG'
+# cal = imageio.imread(file)[800:4600,1200:7000,0] #[400:4800,1400:6900,0]
+cal = imageio.imread(file)[400:4800,1400:6900,0]
+#%%
+t1 = time()
+# calc = rank.otsu(cal, disk(15)) 
+g3 = gaussian(cal,3)
+g30 = gaussian(cal,30)
+no = g3 - g30
+norm = np.zeros_like(no)
+norm[430:-250,40:-40] = (no[430:-250,40:-40] - np.min(no[430:-250,40:-40])) / (np.max(no[430:-250,40:-40]) - np.min(no[430:-250,40:-40])) 
+imt = remove_small_objects(((norm > 0.4)), min_size=300)
+calb = imt
+
+leb = label( calb[:,:] )
+ppro = regionprops(leb)
+
+centsy = [(ppro[i].centroid)[0] for i in range(len(ppro)) ]
+centsx = [(ppro[i].centroid)[1] for i in range(len(ppro)) ]
+
+xgr = np.array( [ 78.05*i - 0.2*j + 105 for j in range(48) for i in range(69) ] ) 
+ygr = np.array( [ 0.38*i + 76.7*j + 473 for j in range(48) for i in range(69) ] )
+
+ocx, ocy = [], []
+for i in range(len(xgr)):
+        if i == 1681:
+            ocx.append(np.nan)
+            ocy.append(np.nan)
+        else: 
+            indx = np.argmin( (centsx - xgr[i])**2 + (centsy - ygr[i])**2  )
+            ocx.append(centsx[indx])
+            ocy.append(centsy[indx])
+ocx, ocy = np.array(ocx), np.array(ocy)
+
+oocy = np.array( [ ocy[(i*69)%(48*69) + int(i/48)] for i in range(len(ocy)) ])
+oocx = np.array( [ ocx[(i*69)%(48*69) + int(i/48)] for i in range(len(ocy)) ])
+
+
+t2 = time()
+print(t2-t1)
+
+#%%
+# plt.figure()
+# plt.imshow(calb)
+# plt.plot(centsx, centsy, 'r.' )
+# plt.show()
+
+# xgr = np.array( [ 78.05*i - 0.2*j + 105 for j in range(48) for i in range(69) ] ) 
+# ygr = np.array( [ 0.38*i + 76.7*j + 473 for j in range(48) for i in range(69) ] )
+
+# fin = 1682
+# plt.figure()
+# plt.plot(centsx, centsy, 'r.' )
+# plt.plot(xgr[:fin], ygr[:fin], 'b.' )
+# # plt.plot(oocx[:fin], oocy[:fin], 'g.' )
+# plt.show()
+
+# fin = 1866
+# fig, ax = plt.subplots()
+
+# line, = ax.plot( centsx, centsy, 'r.', markersize=3 )
+# # line, = ax.plot( xgr[:fin], ygr[:fin], 'b.', markersize=3 )
+# # line, = ax.plot( ocx[:fin], ocy[:fin], 'b.', markersize=3 )
+# line, = ax.plot( oocx[:fin], oocy[:fin], 'b.', markersize=3 )
+# # ax.set_ylim(0,3000)
+
+# fig.subplots_adjust(left=0.25, bottom=0.25)
+# axfreq = fig.add_axes([0.25, 0.1, 0.65, 0.03])
+# slid = Slider( ax=axfreq, label='Fin', valmin=1, valmax=len(xgr), valinit=50, valstep=1)
+# def update(val):
+#     # line.set_ydata( ygr[:int(slid.val)] )
+#     # line.set_xdata( xgr[:int(slid.val)] )
+#     line.set_ydata( oocy[:int(slid.val)] )
+#     line.set_xdata( oocx[:int(slid.val)] )
+#     fig.canvas.draw_idle()
+# slid.on_changed(update)
+
+# plt.grid()
+# plt.show()
+
+distx = np.sqrt((ocx[1:] - ocx[:-1])**2 + (ocy[1:] - ocy[:-1])**2)
+disty = np.sqrt((oocx[1:] - oocx[:-1])**2 + (oocy[1:] - oocy[:-1])**2)
+
+filx,fily = (distx>30) * (distx<100), (disty>30) * (disty<100) 
+
+plt.figure()
+plt.plot(ocx[1:][filx] , distx[filx], '.' )
+# plt.plot(ocx[1:] , distx, '.' )
+plt.plot(oocy[1:][fily] , disty[fily], '.' )
+plt.show()
+
+
+
+np.mean(np.concatenate((distx[filx],disty[fily]))), np.std(np.concatenate((distx[filx],disty[fily])))
+# # np.mean(distx[filx]),np.std(distx[filx]), np.mean(disty[fily]),np.std(disty[fily])
+
+# 5 / 76, 5 / 78 # mm/px, error = 0.001609881121724237 mm/px
+
+#%%
+# =============================================================================
+# Shadow opaque 0°
+# =============================================================================
+
+file = ['/Volumes/Ice blocks/so_s0_t0/_DSC','.JPG']
+
+ims = []
+for i in tqdm([1818,1819,1820]):
+    ims.append(imageio.imread(file[0]+str(i)+file[1]) [1100:3400,660:5800,0])
+
+back = np.mean(np.array(ims),axis=0)
+
+ims = []
+for i in tqdm(range(1708,1809)):
+    ims.append(imageio.imread(file[0]+str(i)+file[1]) [1100:3400,660:5800,0])
+
+ims = np.array(ims)
+#%%
+d = 5 / 77.8438158305425 # mm/px, error = 0.0008711155203865149 mm/px
+
+t1 = time()
+imts = []
+tramos = []
+for i in tqdm(range(len(ims))):
+    imt = sobel(ims[i] - back)
+    lab = label(imt<1.0)
+    num = np.median(lab[1100:1500,1400:2400])
+    imb = remove_small_holes( binary_closing(lab==num, disk(15)), area_threshold=1e5)
+    imts.append(imb)
+    
+    edd = imb * 1. - binary_erosion(imb) * 1.
+    yed,xed = np.where(edd)
+
+    edge = []
+    for j in range(len(xed)):
+        edge.append([xed[j],yed[j]])
+
+    clf = NearestNeighbors(n_neighbors=2).fit(edge)
+    G = clf.kneighbors_graph()
+    T = nx.from_scipy_sparse_array(G)
+    order = list(nx.dfs_preorder_nodes(T, 0))
+    tra_ord = np.array(edge)[order]
+    tramos.append(tra_ord[50:-50,:])
+
+t2 = time()
+print(t2-t1)
+
+#%%
+i = 50
+
+plt.figure()
+plt.imshow(imts[i])
+plt.show()
+
+#%%
+for i in range(60,80):
+
+    yed, xed = 5140 - tramos[i][:,0], tramos[i][:,1]
+    ay,ax = np.argmin(yed), np.argmax(yed) # np.argmax(xed)
+    
+    part = np.sort( [ay,ax] )
+    ffax, ffay = xed[part[0]:part[1]], yed[part[0]:part[1]]
+
+    
+    ini = 0
+    fin = 1
+    plt.figure()
+    # plt.imshow(imts[i])
+    plt.imshow( (ims[i].T)[::-1] )
+    # plt.plot( tramos[i][:,0], tramos[i][:,1],'r-' )
+    plt.plot( xed[ini:-fin],yed[ini:-fin], 'r-' )
+    plt.plot( ffax,ffay, 'g-' )
+    plt.show()
+
+
+# for i in tqdm(range(0,len(tramos),1)):  #46,47
+
+#     yed, xed = 5500 - tramos[i][:,0], tramos[i][:,1]
+#     ay,ax = np.argmax(yed), np.argmax(xed)
+#     part = np.sort( [ay,ax] )
+    
+#     if i == 46:
+#         ffax = np.concatenate( (xed[4930:5269:1], xed[9705:6250:-1]) )
+#         ffay = np.concatenate( (yed[4930:5269:1], yed[9705:6250:-1]) )
+        
+#     elif i == 47:
+#         ffay, ffax = yed[5510:9280], xed[5510:9280]
+        
+#     else:
+#         ffax, ffay = xed[part[0]:part[1]], yed[part[0]:part[1]]
+        
+        
+
+#%%
+# =============================================================================
+# Calibration
+# =============================================================================
+file = '/Volumes/Ice blocks/so_s0_t0/_DSC1813.JPG'
+# cal = imageio.imread(file)[500:4250,800:6500,1] #[1100:3400,660:5800,0]
+cal = imageio.imread(file)[1100:3400,660:5800,1]
+
+#%%
+t1 = time()
+g3 = gaussian(cal,3)
+g30 = gaussian(cal,30)
+no = g3 - g30
+norm = np.zeros_like(no)
+norm[20:,140:] = (no[20:,140:] - np.min(no[20:,140:])) / (np.max(no[20:,140:]) - np.min(no[20:,140:])) 
+imt = remove_small_objects(((norm > 0.4)), min_size=700)
+calb = imt
+
+leb = label( calb[:,:] )
+ppro = regionprops(leb)
+
+centsy = [(ppro[i].centroid)[0] for i in range(len(ppro)) ]
+centsx = [(ppro[i].centroid)[1] for i in range(len(ppro)) ]
+
+xgr = np.array( [ 78.2*i + 0.03*j + 169 for j in range(29) for i in range(64)  ] ) 
+ygr = np.array( [ -0.01*i + 77.8*j + 82 for j in range(29) for i in range(64)  ] )
+
+ocx, ocy = [], []
+for i in range(len(xgr)):
+        if i == 1052:
+            ocx.append(np.nan)
+            ocy.append(np.nan)
+        else: 
+            indx = np.argmin( (centsx - xgr[i])**2 + (centsy - ygr[i])**2  )
+            ocx.append(centsx[indx])
+            ocy.append(centsy[indx])
+ocx, ocy = np.array(ocx), np.array(ocy)
+
+oocy = np.array( [ ocy[(i*64)%(29*64) + int(i/29)] for i in range(len(ocy)) ])
+oocx = np.array( [ ocx[(i*64)%(29*64) + int(i/29)] for i in range(len(ocy)) ])
+
+
+t2 = time()
+print(t2-t1)
+#%%
+
+# plt.figure()
+# plt.imshow(calb)
+# # plt.plot(centsx, centsy, 'r.' )
+# plt.show()
+
+# xgr = np.array( [ 78.2*i + 0.03*j + 169 for j in range(29) for i in range(64)  ] ) 
+# ygr = np.array( [ -0.01*i + 77.8*j + 82 for j in range(29) for i in range(64)  ] )
+
+# fin = 1053
+# plt.figure()
+# plt.plot(centsx, centsy, 'r.' )
+# plt.plot(xgr[:fin], ygr[:fin], 'b.' )
+# # plt.plot(oocx[:fin], oocy[:fin], 'g.' )
+# plt.show()
+
+
+# fin = 1369
+# fig, ax = plt.subplots()
+
+# line, = ax.plot( centsx, centsy, 'r.', markersize=3 )
+# # line, = ax.plot( xgr[:fin], ygr[:fin], 'b.', markersize=3 )
+# # line, = ax.plot( ocx[:fin], ocy[:fin], 'b.', markersize=3 )
+# line, = ax.plot( oocx[:fin], oocy[:fin], 'b.', markersize=3 )
+# # ax.set_ylim(0,3000)
+
+# fig.subplots_adjust(left=0.25, bottom=0.25)
+# axfreq = fig.add_axes([0.25, 0.1, 0.65, 0.03])
+# slid = Slider( ax=axfreq, label='Fin', valmin=1, valmax=len(xgr), valinit=50, valstep=1)
+# def update(val):
+#     # line.set_ydata( ygr[:int(slid.val)] )
+#     # line.set_xdata( xgr[:int(slid.val)] )
+#     line.set_ydata( oocy[:int(slid.val)] )
+#     line.set_xdata( oocx[:int(slid.val)] )
+#     fig.canvas.draw_idle()
+# slid.on_changed(update)
+
+# plt.grid()
+# plt.show()
+
+
+distx = np.sqrt((ocx[1:] - ocx[:-1])**2 + (ocy[1:] - ocy[:-1])**2)
+disty = np.sqrt((oocx[1:] - oocx[:-1])**2 + (oocy[1:] - oocy[:-1])**2)
+
+filx,fily = (distx>30) * (distx<100), (disty>30) * (disty<100) 
+
+plt.figure()
+plt.plot(ocx[1:][filx] , distx[filx], '.' )
+# plt.plot(ocx[1:] , distx, '.' )
+plt.plot(oocy[1:][fily] , disty[fily], '.' )
+plt.show()
+
+np.mean(np.concatenate((distx[filx],disty[fily]))), np.std(np.concatenate((distx[filx],disty[fily])))
+# np.mean(distx[filx]),np.std(distx[filx]), np.mean(disty[fily]),np.std(disty[fily])
+
+
+#%%
+
+
+
+
+
+
+
+
+
+#%%
+
+
+
+
