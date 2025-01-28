@@ -353,32 +353,35 @@ temp_v = np.array(temp)
 angys_v = np.array(angys)
 
 sal_t = ['0','0','0','0','6','6','6','6','12','12','12','12','20','20','20','20','27','27','27','27','0','0','6','12','20','35','35','20','12','6',
-       '35','0']
+       '35','0','6','12','12','20']
 inc_t = ['0(3)','30','15(3)','45(2)','45(ng)','30','15','0','0','15','45','30','30','45','15','0','0','15','30','45','15(4)','15(5)',
-       '45(2)','0(2)','30(2)','30','n15','n15','n15','n15','n15(2)','n15']
+       '45(2)','0(2)','30(2)','30','n15','n15','n15','n15','n15(2)','n15','0(s)','0(s)','30(s)','0(s)']
 salis = [0, 0, 0, 0, 6.8, 7.0, 6.8, 6.8, 13.2, 13.3, 13.2, 13.3, 20.1, 20.1, 19.8, 20.0, 26.1, 26.1, 26.2, 26.2, 0, 0, 6.9, 12.9, 20.1,34.5,34.5,19.7, 
-         13.0, 7.0, 34.3, 0]
-ang = [0,30,15,45,45,30,15,0,0,15,45,30,30,45,15,0,0,15,30,45,15,15, 45, 0, 30, 30, -15, -15, -15, -15, -15, -15 ]
+         13.0, 7.0, 34.3, 0, 5.8, 12.3, 12.4, 18.5]
+ang = [0,30,15,45,45,30,15,0,0,15,45,30,30,45,15,0,0,15,30,45,15,15, 45, 0, 30, 30, -15, -15, -15, -15, -15, -15, 0, 0, 30, 0 ]
 ds_t = [ 0.4019629986999602, 0.4079970860258477, 0.400784094531674, 0.4019866341895751, 0.4140232465732999, 0.4108146995511450, 0.405185916205820,
        0.3985171779558734, 0.4082777044681367, 0.399457458948112, 0.429624677624675, 0.4002974355025642, 0.3962951595980395, 0.4158467162824917,
        0.405560070548485, 0.406690755428839, 0.3986160751319692, 0.406029247234490, 0.403935349493398, 0.4274366684657002, 0.39842940043484637,
        0.3944444940666371, 0.42941247988993125, 0.3986508813811391, 0.41300121024756764, 0.39724780723266606, 0.3991597643255994, 0.4114831458151559,
-       0.4034206887886922, 0.3963784515420281, 0.406148619144839, 0.40500559156677696]
+       0.4034206887886922, 0.3963784515420281, 0.406148619144839, 0.40500559156677696, 
+       0.4038900423099877, 0.4088590866221042, 0.40465748645946387, 0.4070953514695665]
 
 Ls = [ 2099.9999966941955, 2097.2250082592454, 2100.003821154219, 2098.7729533565816, 2092.3116009701507, 2100.7921001119767, 2102.061867627691,
        2104.0217430207585, 2097.0613260850837, 2108.070882626512, 2101.360857870178, 2106.0608525686807, 2103.8609505143863, 2158.7930487367967,
        2112.093781969593, 2113.181455334151, 2104.4329627701713, 2092.891945129341, 2103.955261899692, 2107.0490635783035, 2100.163205198002,
        2102.2972076507995, 2103.9171613871736, 2099.967887686282, 2110.996676678041, 2099.255549750563, 2098.0517570404286, 2102.9647844012497,
-       2101.945064364561, 2100.341294595434, 2103.0141188891594, 2101.2510931269435]
+       2101.945064364561, 2100.341294595434, 2103.0141188891594, 2101.2510931269435,
+       2100.01045350225, 2103.588545842329, 2100.408699264378, 2103.0207273047863]
 
 angys = [0.2752835802019292, 34.47170331852835, 13.06499750709190, 43.6538844493011, 42.63317480202235, 29.31556395720869, 15.64436382383116, 
          0.379506977103330, 2.122818303993659, 16.82489775638404, 47.66715755358717, 28.76640507341181, 31.15486854660724, 50.65480071850850, 
          19.29185570378762, -0.876278847660974, -1.445891941223953, 15.68633111320458, 28.61178195105051, 46.98820258183241, 14.85643305810015,
          18.694159382293858, 44.69885882480372, 0.4091221586816418, 29.57628972829382, 29.370955852274992, -18.732894940242627, -16.522627138169074,
-         -16.27828076769843, -17.33545209415416, -16.58142778295442, -17.450360846901734]
+         -16.27828076769843, -17.33545209415416, -16.58142778295442, -17.450360846901734,
+         -1.6926163253504223, -2.671232787825012, 27.052620463266, 5.031218324124902]
 
 temp = [19.0, 19.0, 19.3, 19.7, 20.1, 20.3, 19.5, 20.0, 19.0, 19.0, 19.7, 19.4, 18.8, 19.2, 19.8, 19.5, 19.8, 19.4, 19.1, 20.0, 20.1, 19.4,
-        19.4, 19.3, 19.2, 19.2, 18.7, 19.3, 18.9, 19.0, 19.1, 19.3]
+        19.4, 19.3, 19.2, 19.2, 18.7, 19.3, 18.9, 19.0, 19.1, 19.3, 19.2, 19.1, 18.8, 19.3]
 
 salis_t = np.array(salis)
 ang_t = np.array(ang)
@@ -401,7 +404,7 @@ with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/heigh
         ts_v.append( np.arange(0, (f['n'][n])[0] ) * 30 )
 
 
-with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/sloped_heights(s0)_r.hdf5', 'r') as f:
+with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/sloped_heights(s0)_all.hdf5', 'r') as f:
 
     hints_t, xns_t, yns_t, ts_t = [], [], [], []
     for n in tqdm(range(len(salis_t))):
@@ -463,11 +466,13 @@ for n in range(len(ds_v)):
                  color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), capsize=3, mfc='w')
         
         
-for n in range(len(ds_t)):
-        
+for n in range(len(ds_t)-4):        
     ax[r'$a)$'].errorbar(salis_t[n], -mes_t[n] * 1 , yerr=0.0011, fmt='.', label=str(n)+'°', markersize=10, \
                   color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70), capsize=3)
-        
+for n in range(-4,0):        
+    ax[r'$a)$'].errorbar(salis_t[n], -mes_t[n] * 1 , yerr=0.0011, fmt='d', label=str(n)+'°', markersize=5, \
+                  color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70), capsize=3)
+
         
 cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(-19, 51), cmap=newcmp), ax=ax[r'$a)$'], location='top')
 # cbar.ax.tick_params(labelsize=12)
@@ -487,10 +492,17 @@ comap = comap.T
 newcmp = ListedColormap(comap)
 
 
-for n in range(len(ds_t)):
+for n in range(len(ds_t)-4):
     ax[r'$b)$'].errorbar( angys_t[n],  -mes_t[n], yerr=0.0011 ,fmt='.', markersize=10,  
                  color=(0.5,1-salis_t[n]/35,salis_t[n]/35), capsize=3) #label=str(i)+'g/kg', \
-    
+for n in range(-4,0):
+    ax[r'$b)$'].errorbar( angys_t[n],  -mes_t[n], yerr=0.0011 ,fmt='d', markersize=6,  
+                 color=(0.5,1-salis_t[n]/35,salis_t[n]/35), capsize=3) #label=str(i)+'g/kg', \
+
+# shadowgraphy experiments, they dont say much 
+ax[r'$b)$'].errorbar( [0,30], [0.017391, 0.017927], yerr=[0.000014, 0.000036], fmt='s', color='black' ) # "clear" (not really that clear)
+ax[r'$b)$'].errorbar( [0,30], [0.014225, 0.018498], yerr=[0.000014, 0.000021], fmt='d', color='black' ) # opaque
+
 cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax[r'$b)$'], location='top')
 # cbar.ax.tick_params(labelsize=12)
 cbar.set_label( label="Salinity (g/kg)") #, size=12)
@@ -2556,10 +2568,10 @@ for n in tqdm(nss_t):
 
 #%%
 
-n = 8 #8 #15 #23
+n = 7 #8 #15 #23
 i = 60
 
-exp = 'v'
+exp = 't'
 if exp == 'v': 
     wtssal_b = wtssal_v
     xns_b, yns_b = xns_v, yns_v
@@ -2618,7 +2630,7 @@ cbar_ax = fig.add_axes([0.18, 0.18, 0.015, 0.65])
 fig.colorbar(ims2, cax=cbar_ax, label='height (mm)', location='left')
 
 # plt.tight_layout()
-# plt.savefig('./Documents/watershed8.png',dpi=400, bbox_inches='tight', transparent=True)
+# plt.savefig('./Documents/Figs morpho draft/watershed_s20_t0.png',dpi=400, bbox_inches='tight', transparent=True)
 plt.show()
 #%%
 n = 10
@@ -2698,9 +2710,9 @@ comap = comap.T
 newcmp = ListedColormap(comap)
 
 fig,ax = plt.subplots()
-# for l,n in enumerate(nss_v):
+for l,n in enumerate(nss_v):
 # for l,n in enumerate([3,8,10,12,2]):
-for l,n in enumerate([8,13]):
+# for l,n in enumerate([8,13]):
     dx = xns_v[n][0,1] - xns_v[n][0,0]
     dy = yns_v[n][0,0] - yns_v[n][1,0]
     if salis_v[n] > 7 and salis_v[n] < 25: 
@@ -2728,33 +2740,6 @@ for l,n in enumerate([8,13]):
 
 # ax.set_ylim(bottom=0)
 # plt.show()
-
-# fig,ax = plt.subplots()
-
-# for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-# # for l,n in enumerate([5,9 ]):
-#     dx = xns_t[n][0,1] - xns_t[n][0,0]
-#     dy = yns_t[n][0,0] - yns_t[n][1,0]
-
-#     mly, mlx = [], []
-#     sly,slx = [], []
-#     for i in range(len(lxs_t[n])):
-#         mlx.append(np.nanmean(lxs_t[n][i]) * dx)
-#         mly.append(np.nanmean(lys_t[n][i]) * dy)
-#         slx.append(np.nanstd(lxs_t[n][i]) * dx)
-#         sly.append(np.nanstd(lys_t[n][i]) * dy)
-        
-#     ax.plot( mly , '.-', color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), label=str(salis_t[n])+'; '+str(ang_t[n]))
-
-#     # ax.errorbar(ts_t[l]/60, mly, yerr=sly, capsize=2, fmt='.-', label=str(salis_t[l])+' g/kg', \
-#     #             errorevery=(l*2,20), color=np.array([0.5,salis_t[l]/35,1-salis_t[l]/35]) ) #, markersize=5, mfc='w' )
-#     # ax.plot( mlx , '.-', color=(0.5,1-salis_t[n]/35,salis_t[n]/35))
-#     # ax.plot( np.array(mlx) / np.array(mly) , '.-', color=(0.5,1-salis_t[n]/35,salis_t[n]/35))
-
-# cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax)
-# # cbar.ax.tick_params(labelsize=12)
-# cbar.set_label( label="S (g/kg)") #, size=12)
-
 # plt.legend(fontsize=8)
 ax.set_ylim(bottom=0)
 ax.set_xlabel('time (min)')
@@ -2763,6 +2748,51 @@ ax.set_ylabel(r'$\lambda_y$ (mm)')
 
 ax.legend(loc='lower left')
 # plt.savefig('./Documents/lamx_t.png',dpi=400, bbox_inches='tight', transparent=True)
+plt.show()
+
+fig,ax = plt.subplots()
+
+# for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
+for l,n in enumerate([7,8,15]):
+    dx = xns_t[n][0,1] - xns_t[n][0,0]
+    dy = yns_t[n][0,0] - yns_t[n][1,0]
+
+    mly, mlx = [], []
+    sly,slx = [], []
+    for i in range(len(lxs_t[n])):
+        mlx.append(np.nanmean(lxs_t[n][i]) * dx)
+        mly.append(np.nanmean(lys_t[n][i]) * dy)
+        slx.append(np.nanstd(lxs_t[n][i]) * dx)
+        sly.append(np.nanstd(lys_t[n][i]) * dy)
+    mly,mlx = np.array(mly), np.array(mlx)
+    sly,slx = np.array(sly), np.array(slx)
+        
+    # ax.plot(ts_t[n]/60, mly , '.-', color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), label=str(salis_t[n])+'; '+str(ang_t[n]))
+    # ax.fill_between(ts_t[n]/60, mly-sly/2, mly+sly/2, color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), alpha=0.2 )
+
+    # ax.errorbar(ts_t[n]/60, mly, yerr=sly, capsize=2, fmt='.-', label=str(salis_t[n])+'; '+str(ang_t[n]), \
+    #             errorevery=(l*2,20), color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ) )
+    #             #color=np.array([0.5,salis_t[n]/35,1-salis_t[n]/35]) ) #, markersize=5, mfc='w' ) #  label=str(salis_t[n])+' g/kg', \
+
+    # ax.plot( mlx , '.-', color=(0.5,1-salis_t[n]/35,salis_t[n]/35))
+    # ax.plot( np.array(mlx) / np.array(mly) , '.-', color=(0.5,1-salis_t[n]/35,salis_t[n]/35))
+ 
+    ax.plot(ts_t[n]/60, mlx , '.-', color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), label=str(salis_t[n])+'; '+str(ang_t[n]))
+    ax.fill_between(ts_t[n]/60, mlx-slx/2, mlx+slx/2, color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), alpha=0.2 )
+
+
+cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax)
+# cbar.ax.tick_params(labelsize=12)
+cbar.set_label( label="S (g/kg)") #, size=12)
+
+# plt.legend(fontsize=8)
+ax.set_ylim(bottom=0)
+ax.set_xlabel('time (min)')
+# ax.set_ylabel(r'$\lambda_y$ (mm)')
+ax.set_ylabel(r'$\lambda_x$ (mm)')
+
+ax.legend(loc='lower left')
+# plt.savefig('./Documents/Figs morpho draft/lamx_t.png',dpi=400, bbox_inches='tight', transparent=True)
 plt.show()
 
 #%%
@@ -2792,13 +2822,15 @@ for l,n in enumerate(nss_v):
         indy, indx = np.argmin(mly[-30:]), np.argmin(mlx[-30:])
         # ax.errorbar(salis_v[l], mly[indy+30], yerr=sly[indy+30], capsize=2, fmt='.-'  )
 
-        mey, eey = np.nanmean(mly[-30:]), np.nanmean(sly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+        mey, eey = np.nanmean(mly[-30:]), np.nanstd(mly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+        # mey, eey = np.nanmean(mly[-30:]), np.nanmean(sly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
         # mey, eey = np.nanmean(mly[-20:]), np.nanmean(sly[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
         li1y = ax[r'$a)$'].errorbar(salis_v[l], mey, yerr=eey, capsize=2, fmt='o', markersize=5, \
                              color=((angys_v[l]+19)/70,0.5,1-(angys_v[l]+19)/70), mfc='w'  )        
         li1ys.append(li1y)
 
-        mex, eex = np.nanmean(mlx[30:]), np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+        mex, eex = np.nanmean(mlx[-30:]), np.nanstd(mlx[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+        # mex, eex = np.nanmean(mlx[30:]), np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
         # mex, eex = np.nanmean(mlx[-20:]), np.nanmean(slx[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
         li1x = ax[r'$b)$'].errorbar(salis_v[l], mex, yerr=eex, capsize=2, fmt='o', markersize=5, \
                              color=((angys_v[l]+19)/70,0.5,1-(angys_v[l]+19)/70), mfc='w'  )        
@@ -2831,13 +2863,15 @@ for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
     indy, indx = np.argmin(mly[-30:]), np.argmin(mlx[-30:])
     # ax.errorbar(salis_t[l], mly[indy+30], yerr=sly[indy+30], capsize=2, fmt='.-'  )
 
-    mey, eey = np.nanmean(mly[-30:]), np.nanmean(sly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    mey, eey = np.nanmean(mly[-30:]), np.nanstd(mly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    # mey, eey = np.nanmean(mly[-30:]), np.nanmean(sly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
     # mey, eey = np.nanmean(mly[-20:]), np.nanmean(sly[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
     # li2y = ax[r'$a)$'].errorbar(salis_t[n], mey, yerr=eey, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
     li2y = ax[r'$a)$'].errorbar(salis_t[n], mey, yerr=eey, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
     li2ys.append(li2y)
 
-    mex, eex = np.nanmean(mlx[30:]), np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    mex, eex = np.nanmean(mlx[-30:]), np.nanstd(mlx[-30:]) #np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    # mex, eex = np.nanmean(mlx[-30:]), np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
     # mex, eex = np.nanmean(mlx[-20:]), np.nanmean(slx[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
     # ax.errorbar(salis_t[l], mex, yerr=eex, capsize=2, fmt='b.', markersize=15, mfc='w', alpha=0.5, label=r'$\lambda_x$'  )
     # li2x = ax[r'$b)$'].errorbar(salis_t[n], mex, yerr=eex, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
@@ -2851,8 +2885,8 @@ for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
 
 
 
-ax[r'$a)$'].set_ylim(10,55)
-ax[r'$b)$'].set_ylim(10,55)
+ax[r'$a)$'].set_ylim(18,42)
+ax[r'$b)$'].set_ylim(18,42)
 
 ax[r'$a)$'].set_ylabel(r'$\lambda_y$ (mm)')
 ax[r'$b)$'].set_ylabel(r'$\lambda_x$ (mm)')
@@ -2864,12 +2898,154 @@ ax[r'$a)$'].legend([li1ys[-1],li2ys[-1],li2ys[3],li2ys[1],li2ys[2] ],[r'Set 1, $
 
 # plt.savefig('./Documents/lamxy_s.png',dpi=400, bbox_inches='tight', transparent=True)
 plt.show()
+#%%
+cols = np.linspace(0,35,256)
+comap = np.array( [ 0.5 *np.ones_like(cols) , 1-(cols)/35 , cols/35 , 1*np.ones_like(cols) ] )
+comap = comap.T
+newcmp = ListedColormap(comap)
+
+fig, ax = plt.subplot_mosaic([[r'$a)$',r'$a)$',r'$b)$',r'$b)$'],
+                              [r'$a)$',r'$a)$',r'$c)$',r'$c)$']], layout='tight', figsize=(12/1.,5/1.) ) #, sharex=True)
+
+# for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
+for l,n in enumerate([7,8,15]):
+    dx = xns_t[n][0,1] - xns_t[n][0,0]
+    dy = yns_t[n][0,0] - yns_t[n][1,0]
+
+    mly, mlx = [], []
+    sly,slx = [], []
+    for i in range(len(lxs_t[n])):
+        mlx.append(np.nanmean(lxs_t[n][i]) * dx)
+        mly.append(np.nanmean(lys_t[n][i]) * dy)
+        slx.append(np.nanstd(lxs_t[n][i]) * dx)
+        sly.append(np.nanstd(lys_t[n][i]) * dy)
+    mly,mlx = np.array(mly), np.array(mlx)
+    sly,slx = np.array(sly), np.array(slx)
+    
+    ax[r'$a)$'].plot(ts_t[n]/60, mly , '.-', color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), 
+                     label=r'$S$ = '+str(salis_t[n])+' g/kg')
+    ax[r'$a)$'].fill_between(ts_t[n]/60, mly-sly/2, mly+sly/2, color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), alpha=0.2 )
+
+    # ax[r'$a)$'].plot(ts_t[n]/60, mlx , '.-', color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), 
+    #                  label=str(salis_t[n])+'; '+str(ang_t[n]))
+    # ax[r'$a)$'].fill_between(ts_t[n]/60, mlx-slx/2, mlx+slx/2, color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), alpha=0.2 )
+
+# cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax[r'$a)$'])
+# # cbar.ax.tick_params(labelsize=12)
+# cbar.set_label( label="S (g/kg)") #, size=12)
+
+ax[r'$a)$'].set_ylim(bottom=0)
+ax[r'$a)$'].set_xlabel('Time (min)')
+ax[r'$a)$'].set_ylabel(r'$\lambda_y$ (mm)')
+# ax[r'$a)$'].set_ylabel(r'$\lambda_x$ (mm)')
+ax[r'$a)$'].legend(loc='lower right')
+
+
+li1ys,li1xs = [],[]
+for l,n in enumerate(nss_v):
+    dx = xns_v[l][0,1] - xns_v[l][0,0]
+    dy = yns_v[l][0,0] - yns_v[l][1,0]
+    if salis_v[l] > 7 and salis_v[l] < 25: 
+        mly, mlx, mld = [], [], []
+        sly, slx, sld = [], [], []
+        for i in range(len(lxs_v[l])):
+            mlx.append(np.nanmean(lxs_v[l][i]) * dx)
+            mly.append(np.nanmean(lys_v[l][i]) * dy)
+            # mld.append(np.nanmean( (lys_v[l][i] * dy) / (lxs_v[l][i] * dx) ))
+            # mlx.append(np.nanmedian(lxs_v[l][i]) * dx)
+            # mly.append(np.nanmedian(lys_v[l][i]) * dy)
+            slx.append(np.nanstd(lxs_v[l][i]) * dx)
+            sly.append(np.nanstd(lys_v[l][i]) * dy)
+            # sld.append(np.nanstd( (lys_v[l][i] * dy) / (lxs_v[l][i] * dx) ))
+            
+        indy, indx = np.argmin(mly[-30:]), np.argmin(mlx[-30:])
+
+        mey, eey = np.nanmean(mly[-30:]), np.nanstd(mly[-30:])  
+        # mey, eey = np.nanmean(mly[-30:]), np.nanmean(sly[-30:]) 
+        li1y = ax[r'$b)$'].errorbar(salis_v[l], mey, yerr=eey, capsize=2, fmt='o', markersize=5, \
+                             color=((angys_v[l]+19)/70,0.5,1-(angys_v[l]+19)/70), mfc='w'  )        
+        li1ys.append(li1y)
+
+        mex, eex = np.nanmean(mlx[-30:]), np.nanstd(mlx[-30:])  
+        # mex, eex = np.nanmean(mlx[-30:]), np.nanmean(slx[-30:]) 
+        li1x = ax[r'$c)$'].errorbar(salis_v[l], mex, yerr=eex, capsize=2, fmt='o', markersize=5, \
+                             color=((angys_v[l]+19)/70,0.5,1-(angys_v[l]+19)/70), mfc='w'  )        
+        li1xs.append(li1x)
+
+li2ys,li2xs = [],[]
+for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
+    dx = xns_t[n][0,1] - xns_t[n][0,0]
+    dy = yns_t[n][0,0] - yns_t[n][1,0]
+
+    mly, mlx, mld = [], [], []
+    sly, slx, sld = [], [], []
+    for i in range(len(lxs_t[n])):
+        mlx.append(np.nanmean(lxs_t[n][i]) * dx)
+        mly.append(np.nanmean(lys_t[n][i]) * dy)
+        # mld.append(np.nanmean( (lys_t[n][i] * dy) / (lxs_t[n][i] * dx) ))
+    
+        slx.append(np.nanstd(lxs_t[n][i]) * dx)
+        sly.append(np.nanstd(lys_t[n][i]) * dy)
+        # sld.append(np.nanstd( (lys_t[n][i] * dy) / (lxs_t[n][i] * dx) ))
+        
+    indy, indx = np.argmin(mly[-30:]), np.argmin(mlx[-30:])
+
+    mey, eey = np.nanmean(mly[-30:]), np.nanstd(mly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    # mey, eey = np.nanmean(mly[-30:]), np.nanmean(sly[-30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    li2y = ax[r'$b)$'].errorbar(salis_t[n], mey, yerr=eey, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
+    li2ys.append(li2y)
+
+    mex, eex = np.nanmean(mlx[-30:]), np.nanstd(mlx[-30:]) 
+    # mex, eex = np.nanmean(mlx[-30:]), np.nanmean(slx[30:])
+    li2x = ax[r'$c)$'].errorbar(salis_t[n], mex, yerr=eex, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
+    li2xs.append(li2x)
+
+
+ax[r'$b)$'].set_ylim(19,43)
+ax[r'$c)$'].set_ylim(19,43)
+ax[r'$b)$'].sharex(ax[r'$c)$'])
+ax[r'$b)$'].tick_params(axis='x',length=3,labelsize=0)
+
+ax[r'$b)$'].set_ylabel(r'$\lambda_y$ (mm)')
+ax[r'$c)$'].set_ylabel(r'$\lambda_x$ (mm)')
+ax[r'$c)$'].set_xlabel('Salinity (g/kg)')
+
+
+ax[r'$b)$'].legend([li1ys[-1],li2ys[-1],li2ys[3],li2ys[1],li2ys[2] ],[r'Set 1, $0°$', r'Set 2, $0°$',r'-$15°$',r'$15°$',r'$30°$'],\
+                    bbox_to_anchor=(0.48,1.3), loc='upper center' , ncol=5, columnspacing = 0.5 )
+# ax[r'$c)$'].legend([li1ys[-1],li2ys[-1],li2ys[3],li2ys[1],li2ys[2] ],[r'Set 1, $0°$', r'Set 2, $0°$',r'-$15°$',r'$15°$',r'$30°$'],\
+#                     bbox_to_anchor=(1.1,0.5), loc='upper center' , ncols=1 )
+
+for labels,axs in ax.items():
+    if labels == r'$a)$':
+        axs.annotate(labels, (-0.16,0.96), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
+    else:
+        axs.annotate(labels, (-0.16,0.91), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
+
+# plt.savefig('./Documents/Figs morpho draft/wavelengths.png',dpi=400, bbox_inches='tight', transparent=False)
+plt.show()
+#%%
+n = 8
+i = 70
+
+plt.figure()
+
+dx = xns_t[n][0,1] - xns_t[n][0,0]
+dy = yns_t[n][0,0] - yns_t[n][1,0]
+daa = [lys_t[7][i] * dy, lys_t[8][i] * dy, lys_t[15][i] * dy]
+# col = (n/12,(n-10)/3,0)
+barviolin(daa, bins=10, x=[1,2,3], width=10) # , x=0, width = 1500, bins=10, alpha=0.6, color=col)
+
+plt.violinplot( daa, widths=.5) 
+#, positions=ts_v[ns[1]][ies]/60, widths=3.5, showextrema=False, showmeans=True, points=100, bw_method='scott' )#, showmeans=True,
+
+# plt.xlim(left=12)
+plt.show()
 
 #%%
 # Area scallops (y quiza numero)
 
 fig,ax = plt.subplots()
-
 # for n in nss_v:
 # for l,n in enumerate([8,10,13]):
 for l,n in enumerate([8,13]):
@@ -2894,6 +3070,30 @@ ax.legend(bbox_to_anchor=(0.5,1.18), loc='upper center' , ncol=3)
 plt.show()
 
 fig,ax = plt.subplots()
+# for n in nss_v:
+# for l,n in enumerate([8,10,13]):
+for l,n in enumerate([7,8,15]):
+# for l,n in enumerate([1,10,12]):
+    if salis_t[n] > 6.0 and salis_v[n] < 25: 
+        dx = xns_t[n][0,1] - xns_t[n][0,0]
+        dy = yns_t[n][0,0] - yns_t[n][1,0]
+        
+        sarm,sars = [], []
+        for i in range(len(sscas_t[n])):
+            sarm.append( np.nanmean(sscas_t[n][i] * dx*dy) )
+            sars.append( np.nanstd(sscas_t[n][i] * dx*dy) )
+
+        plt.errorbar(ts_t[n]/60, np.array(sarm)/100, yerr=np.array(sars)/100,  capsize=2, fmt='.-', errorevery=(l*2,20), \
+                      label=r'$S = $'+str(salis_t[n])+' g/kg' )#, color=(0.5,1-salis_v[n]/35,salis_v[n]/35) )
+
+ax.set_xlabel('time (min)')
+ax.set_ylabel(r'Area (cm$^2$)')
+ax.legend(bbox_to_anchor=(0.5,1.18), loc='upper center' , ncol=3)
+
+# plt.savefig('./Documents/aret.png',dpi=400, bbox_inches='tight', transparent=True)
+plt.show()
+
+fig,ax = plt.subplots()
 li1ys = []
 for n in nss_v:
     if salis_v[n] > 7 and salis_v[n] < 25: 
@@ -2908,7 +3108,11 @@ for n in nss_v:
         # plt.error(ts_v[n]/60, sscas_v[n][i] * dx*dy, '.' )
         # plt.errorbar(ts_v[n]/60, sarm, yerr=sars, capsize=2, fmt='o-', markersize=5, color=(0.5,1-salis_v[n]/35,salis_v[n]/35) )
     
-        li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[30:])/100, yerr=np.nanmean(sars[30:])/100, capsize=2, fmt='o', \
+        # li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[30:])/100, yerr=np.nanmean(sars[30:])/100, capsize=2, fmt='o', \
+        #               markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
+        # li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[-30:])/100, yerr=np.nanmean(sars[3-0:])/100, capsize=2, fmt='o', \
+        #               markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
+        li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[-30:])/100, yerr=np.nanstd(sars[-30:])/100, capsize=2, fmt='o', \
                       markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
         # li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[40:60])/100, fmt='o', markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
         # li1y = ax.errorbar(salis_v[n], np.nanstd(sarm[40:60])/100, fmt='o', markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
@@ -2930,7 +3134,9 @@ for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
 
     # li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[30:])/100, yerr=np.nanmean(sars[30:])/100, capsize=2, fmt='o', \
     #              markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[30:])/100, yerr=np.nanmean(sars[30:])/100, capsize=2, fmt='o', \
+    # li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[30:])/100, yerr=np.nanmean(sars[30:])/100, capsize=2, fmt='o', \
+    #               markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
+    li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[-30:])/100, yerr=np.nanstd(sars[-30:])/100, capsize=2, fmt='o', \
                   markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
     # li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[40:60])/100, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
     # li2y = ax.errorbar(salis_t[n], np.nanstd(sarm[40:60])/100, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
@@ -2943,6 +3149,12 @@ ax.legend([li1ys[-1],li2ys[-1],li2ys[3],li2ys[1],li2ys[2] ],['Set 1', 'Set 2',r'
 
 # plt.savefig('./Documents/ares.png',dpi=400, bbox_inches='tight', transparent=True)
 plt.show()
+#%%
+
+
+
+
+
 #%%
 # n° de scallops
 
@@ -2986,7 +3198,8 @@ fig,ax = plt.subplots()
 
 # for n in [1,10,12]:
 # for n in [0,3,8]:
-for n in [8,10,2]:
+# for n in [8,10,2]:
+for n in [8,9,10,11,12,13,15]:
     mimam, mimas = [],[]
     for i in range(len(smms_v[n])):
         mimam.append( np.nanmean(smms_v[n][i]) )
@@ -3073,10 +3286,10 @@ plt.show()
 # len(centss_v[n][i][:,0]), len( lys_v[n][i] * dy )
 #%%
 #Violin area
-def barviolin(data, x = 0, height=1.0, width=1.0, bins=20, alpha=0.5, color=[]):
+def barviolin(data, x = [0], height=1.0, width=1.0, bins=20, alpha=0.5, color=[]):
     """
     data: list of data for histogram
-    x: float or list of len(data). horizontal position of the data 
+    x: list of len(data). horizontal position of the data 
     height: float 0-1. Percentage of the height of the bar (1 full bar, 0 no bar)
     width: float. Width of the bar 
     """

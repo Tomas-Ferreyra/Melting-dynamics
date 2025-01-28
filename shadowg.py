@@ -52,6 +52,9 @@ from PIL import Image, ImageDraw
 import io
 import cv2
 #%%
+# =============================================================================
+# "Clear" ice 0°
+# =============================================================================
 # file = ['/Volumes/Ice blocks/s0_t0/Hielo_s0_t0/Hielo_s0_t0','.tif']
 file = ['/Volumes/Ice blocks/sc_s0_t0(2)/DSC_','.JPG']
 
@@ -152,6 +155,7 @@ plt.show()
 
 #%%
 # =============================================================================
+# "Clear" ice 0°
 # With matlab clicking 
 # =============================================================================
 file = ['/Volumes/Ice blocks/sc_s0_t0(2)/DSC_','.JPG']
@@ -192,22 +196,82 @@ for i in range(1,len(masx)):
     xgr.append(np.interp(ygr, yes, xes, left=np.nan, right=np.nan))
 xgr = np.array(xgr)
 
-pend, nflt = [],[]
+# pend, nflt = [],[]
+# for line in range(len(xgr.T)):
+#     flt = np.isnan(xgr[:,line])
+#     if np.sum(~flt) > 19:
+#         lreg = linregress(ts[~flt], xgr[:,line][~flt])
+#         pend.append(lreg[0])
+#         nflt.append(np.sum(~flt))
+#     else:
+#         pend.append(np.nan)
+#         nflt.append(np.sum(~flt))
+# pend = np.array(pend)
+
+# flt = ~np.isnan(pend)
+# print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
+
+pend2, pend1, nflt = [],[],[]
 for line in range(len(xgr.T)):
     flt = np.isnan(xgr[:,line])
     if np.sum(~flt) > 19:
-        lreg = linregress(ts[~flt], xgr[:,line][~flt])
-        pend.append(lreg[0])
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg = np.polyfit(ts[~flt], xgr[:,line][~flt], 2)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
         nflt.append(np.sum(~flt))
     else:
-        pend.append(np.nan)
+        pend2.append(np.nan)
+        pend1.append(np.nan)
         nflt.append(np.sum(~flt))
-pend = np.array(pend)
+pend2, pend1 = np.array(pend2), np.array(pend1)
 
-flt = ~np.isnan(pend)
-print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
+flt = ~np.isnan(pend2)
+# print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
+print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend2[flt]), ygr[flt] ) , 'mm/s' )
 #%%
 
+pend2, pend1, nflt, covs = [],[],[],[]
+for line in range(len(xgr.T)):
+    flt = np.isnan(xgr[:,line])
+    if np.sum(~flt) > 19:
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg, cov = np.polyfit(ts[~flt], xgr[:,line][~flt], 2, cov=True)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
+        covs.append(cov[:2,:2])
+        nflt.append(np.sum(~flt))
+    else:
+        pend2.append(np.nan)
+        pend1.append(np.nan)
+        covs.append( np.zeros((2,2)) * np.nan )
+        nflt.append(np.sum(~flt))
+pend2, pend1, covs = np.array(pend2), np.array(pend1), np.array(covs)
+
+flt = ~np.isnan(pend2)
+n = np.sum(flt) #len(covs)
+flcov = np.zeros( (2*n,2*n) )
+for i in range(n):
+    flcov[2*i:2*(i+1), 2*i:2*(i+1) ] = covs[flt][i]
+flc = np.vstack((pend2[flt],pend1[flt])).T.flatten()
+
+t1 = time()
+mra = []
+for i in tqdm(range(1000)): #100000):
+    vsal = []
+    for j in range(n):
+        vsal.append( np.random.multivariate_normal( np.array((pend2[flt][j],pend1[flt][j])), covs[flt][j]) )
+    vsal = np.array(vsal)
+    per2, per1 = vsal[:,0], vsal[:,1]
+    
+    mra.append( -np.trapz( per2 * ts[-1] + per1, ygr[flt] ) / np.trapz( np.ones_like(per2), ygr[flt] ) )
+
+t2 = time()
+print()
+print(t2-t1)
+print( 'Mean = ',np.mean(mra),'\nStd = ', np.std(mra) )
+
+#%%
 plt.figure()
 
 for i in range(0,90,3):
@@ -255,9 +319,9 @@ np.shape(cal)
 plt.figure()
 plt.imshow(cal)
 plt.show()
-# plt.figure()
-# plt.imshow(calt)
-# plt.show()
+plt.figure()
+plt.imshow(calt)
+plt.show()
 #%%
 x1 = 1234.1
 y1 = 3090.3
@@ -349,7 +413,7 @@ np.mean(np.concatenate((distx[filx],disty[fily]))), np.std(np.concatenate((distx
 
 #%%
 # =============================================================================
-# Second ice (30°C)
+# "Clear" ice (30°C)
 # =============================================================================
 file = ['/Volumes/Ice blocks/sc_s0_t30/DSC_','.JPG']
 
@@ -412,9 +476,9 @@ for line in range(len(xgr.T)):
         nflt.append(np.sum(~flt))
 pend2, pend1 = np.array(pend2), np.array(pend1)
 
-flt = ~np.isnan(pend)
+flt = ~np.isnan(pend2)
 # print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
-print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s' )
+print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend2[flt]), ygr[flt] ) , 'mm/s' )
 #%%
 i = 50
 
@@ -465,6 +529,48 @@ plt.xlabel('y (mm)')
 plt.ylabel('melt rate (mm/s)')
 plt.grid()
 plt.show()
+#%%
+# error estimation via generating distribution
+
+pend2, pend1, nflt, covs = [],[],[],[]
+for line in range(len(xgr.T)):
+    flt = np.isnan(xgr[:,line])
+    if np.sum(~flt) > 19:
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg, cov = np.polyfit(ts[~flt], xgr[:,line][~flt], 2, cov=True)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
+        covs.append(cov[:2,:2])
+        nflt.append(np.sum(~flt))
+    else:
+        pend2.append(np.nan)
+        pend1.append(np.nan)
+        covs.append( np.zeros((2,2)) * np.nan )
+        nflt.append(np.sum(~flt))
+pend2, pend1, covs = np.array(pend2), np.array(pend1), np.array(covs)
+
+flt = ~np.isnan(pend2)
+n = np.sum(flt) #len(covs)
+flcov = np.zeros( (2*n,2*n) )
+for i in range(n):
+    flcov[2*i:2*(i+1), 2*i:2*(i+1) ] = covs[flt][i]
+flc = np.vstack((pend2[flt],pend1[flt])).T.flatten()
+
+t1 = time()
+mra = []
+for i in tqdm(range(1000)): #100000):
+    vsal = []
+    for j in range(n):
+        vsal.append( np.random.multivariate_normal( np.array((pend2[flt][j],pend1[flt][j])), covs[flt][j]) )
+    vsal = np.array(vsal)
+    per2, per1 = vsal[:,0], vsal[:,1]
+    
+    mra.append( -np.trapz( per2 * ts[-1] + per1, ygr[flt] ) / np.trapz( np.ones_like(per2), ygr[flt] ) )
+
+t2 = time()
+print()
+print(t2-t1)
+print( 'Mean = ',np.mean(mra),'\nStd = ', np.std(mra) )
 
 #%%
 # =============================================================================
@@ -674,9 +780,50 @@ for line in range(len(xgr.T)):
         nflt.append(np.sum(~flt))
 pend2, pend1 = np.array(pend2), np.array(pend1)
 
-flt = ~np.isnan(pend)
+flt = ~np.isnan(pend2)
 # print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
-print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s' )
+print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend2[flt]), ygr[flt] ) , 'mm/s' )
+#%%
+
+pend2, pend1, nflt, covs = [],[],[],[]
+for line in range(len(xgr.T)):
+    flt = np.isnan(xgr[:,line])
+    if np.sum(~flt) > 19:
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg, cov = np.polyfit(ts[~flt], xgr[:,line][~flt], 2, cov=True)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
+        covs.append(cov[:2,:2])
+        nflt.append(np.sum(~flt))
+    else:
+        pend2.append(np.nan)
+        pend1.append(np.nan)
+        covs.append( np.zeros((2,2)) * np.nan )
+        nflt.append(np.sum(~flt))
+pend2, pend1, covs = np.array(pend2), np.array(pend1), np.array(covs)
+
+flt = ~np.isnan(pend2)
+n = np.sum(flt) #len(covs)
+flcov = np.zeros( (2*n,2*n) )
+for i in range(n):
+    flcov[2*i:2*(i+1), 2*i:2*(i+1) ] = covs[flt][i]
+flc = np.vstack((pend2[flt],pend1[flt])).T.flatten()
+
+t1 = time()
+mra = []
+for i in tqdm(range(1000)): #100000):
+    vsal = []
+    for j in range(n):
+        vsal.append( np.random.multivariate_normal( np.array((pend2[flt][j],pend1[flt][j])), covs[flt][j]) )
+    vsal = np.array(vsal)
+    per2, per1 = vsal[:,0], vsal[:,1]
+    
+    mra.append( -np.trapz( per2 * ts[-1] + per1, ygr[flt] ) / np.trapz( np.ones_like(per2), ygr[flt] ) )
+
+t2 = time()
+print()
+print(t2-t1)
+print( 'Mean = ',np.mean(mra),'\nStd = ', np.std(mra) )
 
 #%%
 i = 53
@@ -960,32 +1107,142 @@ t2 = time()
 print(t2-t1)
 
 #%%
-i = 50
+i = 10
 
 plt.figure()
 plt.imshow(imts[i])
 plt.show()
 
 #%%
-for i in range(60,80):
+xpi, ypi = [], [] 
+for i in tqdm(range(0,len(tramos))):
+# for i in [15]:
 
     yed, xed = 5140 - tramos[i][:,0], tramos[i][:,1]
-    ay,ax = np.argmin(yed), np.argmax(yed) # np.argmax(xed)
     
-    part = np.sort( [ay,ax] )
+    yed45 = np.cos(np.pi/4) * yed - np.sin(np.pi/4) * xed
+    xed45 = np.sin(np.pi/4) * yed + np.cos(np.pi/4) * xed
+    
+    ay,ax = np.argmin(yed), np.argmax(yed) # np.argmax(xed)
+    ay45, ax45 = np.argmin(yed45), np.argmax(xed45)
+    
+    # part = np.sort( [ay,ax] )
+    # ffax, ffay = xed[part[0]:part[1]], yed[part[0]:part[1]]
+    part = np.sort( [ay45,ax45] )
+    # ffax45, ffay45 = xed45[part45[0]:part45[1]], yed45[part45[0]:part45[1]]
     ffax, ffay = xed[part[0]:part[1]], yed[part[0]:part[1]]
 
-    
-    ini = 0
-    fin = 1
-    plt.figure()
-    # plt.imshow(imts[i])
-    plt.imshow( (ims[i].T)[::-1] )
-    # plt.plot( tramos[i][:,0], tramos[i][:,1],'r-' )
-    plt.plot( xed[ini:-fin],yed[ini:-fin], 'r-' )
-    plt.plot( ffax,ffay, 'g-' )
-    plt.show()
+    xpi.append(ffax)
+    ypi.append(ffay)
 
+
+xes, yes = xpi[0], ypi[0]
+pixx = np.arange(len(yes))
+
+lreg = linregress(pixx, yes)
+ygr = pixx * lreg[0] + lreg[1]
+
+xgr = []
+xgr.append(np.interp(ygr, yes, xes, left=np.nan, right=np.nan))
+for i in range(1,len(xpi)):
+    xes, yes = xpi[i], ypi[i]
+    spe = int( np.sign( linregress(np.arange(len(yes)), yes)[0] ))
+    xgr.append(np.interp(ygr, yes[::spe], xes[::spe], left=np.nan, right=np.nan))
+xgr = np.array(xgr) * d
+
+ts = np.arange(len(xgr)) * 30
+ts[72:] = ts[72:] + 316
+
+pend2, pend1, nflt = [],[],[]
+for line in range(len(xgr.T)):
+    flt = np.isnan(xgr[:,line])
+    if np.sum(~flt) > 19:
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg = np.polyfit(ts[~flt], xgr[:,line][~flt], 2)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
+        nflt.append(np.sum(~flt))
+    else:
+        pend2.append(np.nan)
+        pend1.append(np.nan)
+        nflt.append(np.sum(~flt))
+pend2, pend1 = np.array(pend2), np.array(pend1)
+
+flt = ~np.isnan(pend2)
+# print('melt rate =', np.trapz( -pend[flt], ygr[flt] ) / np.trapz( np.ones_like(pend[flt]), ygr[flt] ) , 'mm/s')
+print('melt rate =', -np.trapz( pend2[flt] * ts[-1] + pend1[flt], ygr[flt] ) / np.trapz( np.ones_like(pend2[flt]), ygr[flt] ) , 'mm/s' )
+#%%
+
+pend2, pend1, nflt, covs = [],[],[],[]
+for line in range(len(xgr.T)):
+    flt = np.isnan(xgr[:,line])
+    if np.sum(~flt) > 19:
+        # lreg = linregress(ts[~flt], xgr[:,line][~flt])
+        lreg, cov = np.polyfit(ts[~flt], xgr[:,line][~flt], 2, cov=True)
+        pend2.append(lreg[0])
+        pend1.append(lreg[1])
+        covs.append(cov[:2,:2])
+        nflt.append(np.sum(~flt))
+    else:
+        pend2.append(np.nan)
+        pend1.append(np.nan)
+        covs.append( np.zeros((2,2)) * np.nan )
+        nflt.append(np.sum(~flt))
+pend2, pend1, covs = np.array(pend2), np.array(pend1), np.array(covs)
+
+flt = ~np.isnan(pend2)
+n = np.sum(flt) #len(covs)
+flcov = np.zeros( (2*n,2*n) )
+for i in range(n):
+    flcov[2*i:2*(i+1), 2*i:2*(i+1) ] = covs[flt][i]
+flc = np.vstack((pend2[flt],pend1[flt])).T.flatten()
+
+t1 = time()
+mra = []
+for i in tqdm(range(1000)): #100000):
+    vsal = []
+    for j in range(n):
+        vsal.append( np.random.multivariate_normal( np.array((pend2[flt][j],pend1[flt][j])), covs[flt][j]) )
+    vsal = np.array(vsal)
+    per2, per1 = vsal[:,0], vsal[:,1]
+    
+    mra.append( -np.trapz( per2 * ts[-1] + per1, ygr[flt] ) / np.trapz( np.ones_like(per2), ygr[flt] ) )
+
+t2 = time()
+print()
+print(t2-t1)
+print( 'Mean = ',np.mean(mra),'\nStd = ', np.std(mra) )
+
+#%%
+# for i in range(0,20):
+#     plt.figure()
+#     plt.title(i)
+#     # plt.imshow(imts[i])
+#     plt.imshow( (ims[i].T)[::-1] )
+#     # # plt.plot( tramos[i][:,0], tramos[i][:,1],'r-' )
+#     plt.plot( xpi[i],ypi[i], 'g-' )
+
+#     plt.show()
+
+plt.figure()
+for i in range(0,50,3):
+    plt.plot( xpi[i],ypi[i], '-' )
+# plt.axis('equal')
+plt.show()
+
+i = 3
+plt.figure()
+plt.plot(ypi[i],xpi[i], '.-')
+plt.plot(ygr,xgr[i] / d, '-')
+plt.grid()
+plt.show()
+
+plt.figure()
+# plt.plot( xgr[:,2400], '.-' )
+plt.plot(ts, xgr[:,2400], '.-' )
+plt.show()
+
+#%%
 
 # for i in tqdm(range(0,len(tramos),1)):  #46,47
 
@@ -1117,7 +1374,20 @@ np.mean(np.concatenate((distx[filx],disty[fily]))), np.std(np.concatenate((distx
 
 
 #%%
+# =============================================================================
+# Melt rates
+# =============================================================================
+"""
+Clean:
+    -  0°: 0.017391272652466472 mm/s  (valor con ajuste lineal 0.01707722351916766 mm/s) (Mean = 0.01739109625875171 ± 1.3995341819464634e-05)
+    - 30°: 0.01792711815735921 mm/s (Mean =  0.017927464328421308 ± 3.595375889688908e-05)
+Opaque:
+    -  0°: 0.014224339432668187 mm/s (Mean =  0.014224881812559377 ± 1.3849805854054853e-05)
+    - 30°: 0.018499259578733992 mm/s (0.018498092402937052 ± 2.1185750741258196e-05)
+
+"""
 
 
 
 
+#%%
