@@ -1785,587 +1785,100 @@ plt.plot(RaS_t, Nu_t, '.' )
 # plt.xscale('log')
 # plt.yscale('log')
 plt.show()
-
-
 #%%
 # =============================================================================
-# Separate scallops
+# Showing of height profiles
 # =============================================================================
-# with tubeness filter sato
-n = 1
-skels, scaprop = [],[]
-
-for i in tqdm(range(len(difs_v[n]))):
-    saa = sato( -difs_v[n][i] )
-
-    # skel = skeletonize( (saa / np.nanmax(saa)) > 0.15 )
-    skel = thin( (saa / np.nanmax(saa)) > 0.15 )
-
-    scals = label(~dilation(skel, np.ones((3,3))) )
-    scals += -1
-    scals[scals==-1] = 0
-    propsca = regionprops(scals)
-    
-    skels.append(skel)
-    scaprop.append(propsca)
-    
-#%%
-nske, nsca, nscaf, cents = [], [], [], []
-ssca = []
-for i in range(len(skels)):
-    scas = np.array( [ scaprop[i][j].area for j in range(len(scaprop[i])) ] )
-    cen = np.array( [ scaprop[i][j].centroid for j in range(len(scaprop[i])) ] )
-
-    nske.append( np.sum(skels[i]) )
-    nsca.append( len(scaprop[i]) )
-    nscaf.append( np.sum( scas > 1000) )
-    cents.append( cen )
-    ssca.append(  np.mean(scas[scas>1000]) )
-
-
-plt.figure()
-plt.plot(nske,'.-')
-plt.show()
-plt.figure()
-plt.plot(nsca,'.-')
-plt.plot(nscaf,'.-')
-plt.show()
-plt.figure()
-plt.plot(ssca,'.-')
-plt.show()
-#%%
-def image_stdev(region, intensities):
-    # note the ddof arg to get the sample var if you so desire!
-    return np.std(intensities[region], ddof=0)
-def image_minmax(region, intensities):
-    # note the ddof arg to get the sample var if you so desire!
-    return np.max(intensities[region]) - np.min(intensities[region])  
-
-# with finding minima + watershed
-wtssal_v, propscal_v = [],[]
-for n in tqdm(range(len(ds_v))):
-    wats, scaprop = [], []
-    for i in range(len(difs_v[n])):
-        dife = np.copy( difs_v[n][i] )
-        dife[np.isnan(dife)] = -1000
-        mm3 = peak_local_max( -dife, labels=~np.isnan(difs_v[n][i]), min_distance=25 ) 
-        
-        markr = np.zeros_like(difs_v[n][i])
-        markr[mm3[:,0],mm3[:,1]] = 1
-        
-        dife = np.copy( difs_v[n][i] )
-        dife[np.isnan(dife)] = 1000
-        
-        wts = watershed(dife, markers=label(markr), mask= ~np.isnan(difs_v[n][i]) )
-        
-        wats.append(wts)
-        scaprop.append( regionprops(wts, intensity_image=difs_v[n][i], extra_properties=[image_stdev,image_minmax]) )
-        
-    wtssal_v.append(wats)
-    propscal_v.append( scaprop )
-    
-
-# wtssal_t, propscal_t = [],[]
-# for n in tqdm(range(len(ds_t))):
-#     wats, scaprop = [], []
-#     for i in range(len(difs_t[n])):
-#         dife = np.copy( difs_t[n][i] )
-#         dife[np.isnan(dife)] = -1000
-#         mm3 = peak_local_max( -dife, labels=~np.isnan(difs_t[n][i]), min_distance=25 ) 
-        
-#         markr = np.zeros_like(difs_t[n][i])
-#         markr[mm3[:,0],mm3[:,1]] = 1
-        
-#         dife = np.copy( difs_t[n][i] )
-#         dife[np.isnan(dife)] = 1000
-        
-#         wts = watershed(dife, markers=label(markr), mask= ~np.isnan(difs_t[n][i]) )
-        
-#         wats.append(wts)
-#         scaprop.append( regionprops(wts, intensity_image=difs_t[n][i], extra_properties=[image_stdev,image_minmax]) )
-        
-#     wtssal_t.append(wats)
-#     propscal_t.append( scaprop )
-    
-#%%
-nss = list(range(len(ds_v)))
-sscas, nscas, nscafs, centss = [], [], [], []
-eccens, oriens, stdevs, mimas = [],[], [], []
-laxmas, laxmis, exts = [], [], []
-for n in tqdm(nss):
-    ssca, nsca, nscaf, cents = [], [], [], []
-    ecen,orien,stdev,mima = [],[], [], []
-    laxma, laxmi, ext = [],[], []
-    scaprop = propscal_v[n]
-    for i in range(len(scaprop)):
-        scas = np.array( [ scaprop[i][j].area for j in range(len(scaprop[i])) ] )
-        cen = np.array( [ scaprop[i][j].centroid for j in range(len(scaprop[i])) ] )
-        ec = np.array( [ scaprop[i][j].eccentricity for j in range(len(scaprop[i])) ] )
-        ori = np.array( [ scaprop[i][j].orientation for j in range(len(scaprop[i])) ] )
-        sd = np.array( [ scaprop[i][j].image_stdev for j in range(len(scaprop[i])) ] )
-        mm = np.array( [ scaprop[i][j].image_minmax for j in range(len(scaprop[i])) ] )
-        ama = np.array( [ scaprop[i][j].axis_major_length for j in range(len(scaprop[i])) ] )
-        ami = np.array( [ scaprop[i][j].axis_minor_length for j in range(len(scaprop[i])) ] )   
-        ex = np.array( [ scaprop[i][j].extent for j in range(len(scaprop[i])) ] )   
-        
-        # if n==15 and i==50: print(len(ec), len(ama))
-    
-        nsca.append( len(scaprop[i]) )
-        nscaf.append( np.sum( scas > 1000) )
-        cents.append( cen )
-        ssca.append(  np.mean(scas[scas>1000]) )
-        ecen.append( ec ) #[scas>1000] )
-        orien.append( ori) #[scas>1000] )
-        stdev.append( sd[scas>1000] )
-        mima.append( mm[scas>1000] )
-        laxma.append( ama )
-        laxmi.append( ami )        
-        ext.append( ex )        
-
-    sscas.append(ssca)
-    nscas.append(np.array(nsca))
-    nscafs.append(nscaf)
-    centss.append(cents)
-    eccens.append(ecen)
-    oriens.append(orien)
-    stdevs.append(stdev)
-    mimas.append(mima)
-    laxmas.append( laxma )
-    laxmis.append( laxmi )
-    exts.append( ext )
-
-# nss = list(range(len(ds_t)))
-# sscas, nscas, nscafs, centss = [], [], [], []
-# eccens, oriens, stdevs, mimas = [],[], [], []
-# for n in nss:
-#     ssca, nsca, nscaf, cents = [], [], [], []
-#     ecen,orien,stdev,mima = [],[], [], []
-#     scaprop = propscal_t[n]
-#     for i in range(len(scaprop)):
-#         scas = np.array( [ scaprop[i][j].area for j in range(len(scaprop[i])) ] )
-#         cen = np.array( [ scaprop[i][j].centroid for j in range(len(scaprop[i])) ] )
-#         ec = np.array( [ scaprop[i][j].eccentricity for j in range(len(scaprop[i])) ] )
-#         ori = np.array( [ scaprop[i][j].orientation for j in range(len(scaprop[i])) ] )
-#         ori = np.array( [ scaprop[i][j].orientation for j in range(len(scaprop[i])) ] )
-#         sd = np.array( [ scaprop[i][j].image_stdev for j in range(len(scaprop[i])) ] )
-#         mm = np.array( [ scaprop[i][j].image_minmax for j in range(len(scaprop[i])) ] )
-    
-#         nsca.append( len(scaprop[i]) )
-#         nscaf.append( np.sum( scas > 1000) )
-#         cents.append( cen )
-#         ssca.append(  np.mean(scas[scas>1000]) )
-#         ecen.append( ec[scas>1000] )
-#         orien.append( ori[scas>1000] )
-#         stdev.append( sd[scas>1000] )
-#         mima.append( mm[scas>1000] )
-
-#     sscas.append(ssca)
-#     nscas.append(np.array(nsca))
-#     nscafs.append(nscaf)
-#     centss.append(centss)
-#     eccens.append(ecen)
-#     oriens.append(orien)
-#     stdevs.append(stdev)
-#     mimas.append(mima)
-#%%
-n = 1
-i = 50
-
-sobb = sobel(wtssal_v[n][i]) > 0
-soy,sox = np.where(sobb)
-
-plt.figure()
-plt.imshow(difs_v[n][i])
-plt.plot(sox,soy, 'r.', markersize=3)
-plt.show()
-
-# plt.figure()
-# plt.imshow(difs_v[n][i])
-# plt.plot(sox,soy, 'r.', markersize=3)
-# for j in range(len(laxmas[n][i])):
-#     plt.text(centss[n][i][j][1], centss[n][i][j][0] , str(round(oriens[n][i][j]/1. ,2)) )
-# plt.show()
-
-# # plt.figure()
-# # plt.imshow(difs_v[n][i])
-# # plt.plot(sox,soy, 'r.', markersize=3)
-# # for j in range(len(laxmas[n][i])):
-# #     plt.text(centss[n][i][j][1], centss[n][i][j][0] , str(round(eccens[n][i][j],2)) )
-# # plt.show()
-
-# # plt.figure()
-# # plt.imshow(difs_v[n][i])
-# # plt.plot(sox,soy, 'r.', markersize=3)
-# # for j in range(len(laxmas[n][i])):
-# #     plt.text(centss[n][i][j][1], centss[n][i][j][0] , str(round(laxmas[n][i][j],2)) )
-# # plt.show()
-
-# plt.figure()
-# plt.imshow(difs_v[n][i])
-# plt.plot(sox,soy, 'r.', markersize=3)
-# for j in range(len(laxmas[n][i])):
-#     plt.text(centss[n][i][j][1], centss[n][i][j][0] , str(round(laxmis[n][i][j] / laxmas[n][i][j],2)) )
-# plt.show()
-
-# plt.figure()
-# plt.imshow(difs_v[n][i])
-# plt.plot(sox,soy, 'r.', markersize=3)
-# for j in range(len(laxmas[n][i])):
-#     plt.text(centss[n][i][j][1], centss[n][i][j][0] , str(round(laxmis[n][i][j] / laxmas[n][i][j] * oriens[n][i][j],3)) )
-# plt.show()
-
-#%%
-
-plt.figure()
-for n in [1,4]:
-    for i in range(len(difs_v[n])):
-        fil = np.abs(oriens[n][i]) > np.pi/4
-        # plt.errorbar(ts_v[n][i]/60, np.mean(laxmas[n][i][fil]), yerr=np.std(laxmas[n][i][fil]), fmt='r.')
-        # plt.errorbar(ts_v[n][i]/60, np.mean(laxmis[n][i][fil]), yerr=np.std(laxmis[n][i][fil]), fmt='.', color=(n/15,(n%2)/2,1-n/15), label=salis_v[n])
-        plt.errorbar(ts_v[n][i]/60, np.mean(laxmas[n][i][fil]), yerr=np.std(laxmas[n][i][fil]), fmt='.', color=(n/15,(n%2)/2,1-n/15), label=salis_v[n])
-plt.show()
-
-n = 1
-plt.figure()
-for i in range(len(difs_v[n])):
-    fil = np.abs(oriens[n][i]) > np.pi/4
-    plt.errorbar(ts_v[n][i]/60, np.mean(laxmas[n][i][fil] / laxmis[n][i][fil]), yerr=np.std(laxmas[n][i][fil] / laxmis[n][i][fil]), fmt='r.')
-plt.show()
-
-#%%
-plt.figure()
-for l,n in enumerate(nss):
-    # plt.plot(nscas[l],'.--')
-    plt.plot(nscafs[l] / ,'.-')
-    # plt.plot(nscas[l] - nscafs[l],'.-')
-plt.show()
-
-# plt.figure()
-# for l,n in enumerate(nss):
-#     plt.plot(sscas[l],'.-')
-# plt.show()
-
-
-# plt.figure()
-# l = 3
-# for i in range(len(eccens[l])):
-#     mec,sec = np.mean( eccens[l][i]), np.std( eccens[l][i])
-#     plt.errorbar(i, mec, yerr=sec, fmt='k.' )
-# l = 1
-# for i in range(len(eccens[l])):
-#     mec,sec = np.mean( eccens[l][i]), np.std( eccens[l][i])
-#     plt.errorbar(i, mec, yerr=sec, fmt='r.' )
-# plt.show()
-
-# plt.figure()
-# # for l,n in enumerate(nss):
-# for i in range(len(oriens[l])):
-#     # plt.plot( [i]*len(oriens[l][i]) , oriens[l][i],'.')
-#     mec,sec = np.mean( oriens[l][i]), np.std( oriens[l][i])
-#     plt.errorbar(i, mec, yerr=sec, fmt='k.' )
-# plt.show()
-
-# l = 1
-# plt.figure()
-# # for l,n in enumerate(nss):
-# for l,n in enumerate([4,5,6,7,8,9]):
-#     for i in range(len(stdevs[l])):
-#         # plt.plot( [i]*len(stdevs[l][i]) , stdevs[l][i],'.')
-#         mec,sec = np.mean( stdevs[l][i]), np.std( stdevs[l][i])
-#         plt.errorbar(i, mec, yerr=sec, fmt='.', color=(salis_v[n]/28,0,1-salis_v[n]/28) )
-#     plt.errorbar(i, mec, yerr=sec, fmt='.', color=(salis_v[n]/28,0,1-salis_v[n]/28), label=salis_v[n] )
-# plt.legend(loc='upper left')
-# plt.gca().set_ylim(bottom=0)
-# plt.show()
-
-# plt.figure()
-# # for l,n in enumerate(nss):
-# for l,n in enumerate(nss):
-#     for i in range(len(mimas[l])):
-#         # plt.plot( [i]*len(mimas[l][i]) , mimas[l][i],'.')
-#         mec,sec = np.mean( mimas[l][i]), np.std( mimas[l][i])
-#         plt.errorbar(i, mec, yerr=sec, fmt='.', color=(salis_v[n]/28,0,1-salis_v[n]/28) )
-#     plt.errorbar(i, mec, yerr=sec, fmt='.', color=(salis_v[n]/28,0,1-salis_v[n]/28), label=salis_v[n] )
-# plt.legend(loc='upper left')
-# plt.gca().set_ylim(bottom=0)
-# plt.show()
-
-#%%
-
-plt.figure()
-# for l,n in enumerate(nss):
-# for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-for l,n in enumerate([7,8,15]):
-# for l,n in enumerate([7,6,5]):
-    # plt.plot(nscas[l],'.--')
-    # plt.plot(nscafs[l],'.-')
-    plt.plot(nscas[l] - nscafs[l],'.-', label=salis_t[n])
-plt.legend()
-plt.show()
-
-plt.figure()
-# for l,n in enumerate(nss):
-# for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-for l,n in enumerate([7,8,15]):
-# for l,n in enumerate([7,6,5]):
-    plt.plot(sscas[l],'.-')
-plt.show()
-
-# plt.figure()
-# # for l,n in enumerate(nss):
-# # for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-# for l,n in enumerate([7,8,15]):
-# # for l,n in enumerate([7,6,5]):
-#     for i in range(len(stdevs[l])):
-#         # plt.plot( [i]*len(stdevs[l][i]) , stdevs[l][i],'.')
-#         mec,sec = np.mean( stdevs[l][i]), np.std( stdevs[l][i])
-#         plt.errorbar(i, mec, yerr=sec, fmt='.', color=np.array([0.5,salis_t[n]/27.4,1-salis_t[n]/27.4]) * (1 - (ang_t[n])/70 ))
-#     plt.errorbar(i, mec, yerr=sec, fmt='.', color=np.array([0.5,salis_t[n]/27.4,1-salis_t[n]/27.4]) * (1 - (ang_t[n])/70 ), label=salis_t[n] )
-# plt.legend(loc='upper left')
-# plt.gca().set_ylim(bottom=0)
-# plt.show()
-
-# plt.figure()
-# # for l,n in enumerate(nss):
-# for l,n in enumerate(nss):
-#     for i in range(len(mimas[l])):
-#         # plt.plot( [i]*len(mimas[l][i]) , mimas[l][i],'.')
-#         mec,sec = np.mean( mimas[l][i]), np.std( mimas[l][i])
-#         plt.errorbar(i, mec, yerr=sec, fmt='.', color=(salis_t[n]/35,0,1-salis_t[n]/35) )
-#     plt.errorbar(i, mec, yerr=sec, fmt='.', color=(salis_t[n]/35,0,1-salis_t[n]/35), label=salis_t[n] )
-# plt.legend(loc='upper left')
-# plt.gca().set_ylim(bottom=0)
-# plt.show()
-
-#%%
-n = 7
-i = 80
-# normm = (difs_v[n][i] - np.nanmin(difs_v[n][i]) ) / (np.nanmax(difs_v[n][i]) - np.nanmin(difs_v[n][i]))
-
-# plt.figure()
-# plt.imshow( mark_boundaries(normm, wtssal_v[n][i], color=(1,1,1)) )
-# plt.show()
-
-normm = (difs_t[n][i] - np.nanmin(difs_t[n][i]) ) / (np.nanmax(difs_t[n][i]) - np.nanmin(difs_t[n][i]))
-plt.figure()
-plt.imshow( mark_boundaries(normm, wtssal_t[n][i], color=(1,1,1)) )
-plt.show()
-
-plt.figure()
-# plt.imshow(difs_v[n][i])
-plt.imshow(difs_t[n][i])
-# plt.plot( np.where(skels[i])[1], np.where(skels[i])[0], 'k.', markersize=1 )
-plt.show()
-# plt.figure()
-# plt.imshow(difs_v[n][i+1])
-# plt.plot( np.where(skels[i+1])[1], np.where(skels[i+1])[0], 'k.', markersize=1 )
-# plt.show()
-
-#%%
-n = 7
-i = 80
-
-t1 = time()
-dife = np.copy( difs_v[n][i] )
-dife[np.isnan(dife)] = -1000
-mm3 = peak_local_max( -dife, labels=~np.isnan(difs_v[n][i]), min_distance=25 ) 
-
-markr = np.zeros_like(difs_v[n][i])
-markr[mm3[:,0],mm3[:,1]] = 1
-
-dife = np.copy( difs_v[n][i] )
-dife[np.isnan(dife)] = 1000
-
-# wts = watershed(dife, markers=200, mask= ~np.isnan(difs_v[n][i]) )
-wts = watershed(dife, markers=label(markr), mask= ~np.isnan(difs_v[n][i]) )
-
-t2 = time()
-print(t2-t1)
-
-
-normm = ( difs_v[n][i] - np.nanmin(difs_v[n][i]) ) / (np.nanmax(difs_v[n][i]) - np.nanmin(difs_v[n][i]) )
-normm[np.isnan(normm)] = 0.
-
-plt.figure()
-plt.imshow( mark_boundaries( normm  , wts ,color=(1,0,1)), cmap='viridis' )
-plt.colorbar()
-plt.show()
-plt.figure()
-plt.imshow( wts )
-plt.colorbar()
-plt.show()
-
-
-#%%
-
-dife = np.copy( difs_v[n][i] )
-dife[np.isnan(dife)] = -1000
-
-t1=time()
-mm2 = peak_local_max( -dife, labels=~np.isnan(difs_v[n][i]), footprint=disk(30) ) #, min_distance=10 ) # , footprint=np.ones((3, 3)))
-t2 = time()
-mm3 = peak_local_max( -dife, labels=~np.isnan(difs_v[n][i]), min_distance=30 ) # , footprint=np.ones((3, 3)))
-t3 = time()
-print(t2-t1,t3-t2)
-
-
-plt.figure()
-plt.imshow(difs_v[n][i])
-plt.plot( mm3[:,1], mm3[:,0], 'ro' )
-plt.plot( mm2[:,1], mm2[:,0], 'k.' )
-plt.show()
-
-#%%
-n = 1
-i = 100
-
-t1 = time()
-sobb = sobel(wtssal_v[n][i]) > 0
-t2 = time()
-print(t2-t1)
-
-sky,skx = np.where(skels[i])
-soy,sox = np.where(sobb)
-
-plt.figure()
-plt.imshow(difs_v[n][i])
-plt.colorbar()
-plt.show()
-plt.figure()
-plt.imshow(difs_v[n][i])
-plt.plot(skx,sky, 'k.', markersize=5)
-# plt.plot(sox,soy, 'r.', markersize=3)
-plt.show()
-plt.figure()
-plt.imshow(difs_v[n][i])
-# plt.plot(skx,sky, 'k.', markersize=5)
-plt.plot(sox,soy, 'r.', markersize=3)
-plt.show()
-
-# plt.figure()
-# plt.imshow(skels[i])
-# plt.show()
-
-# plt.figure()
-# plt.imshow( sobel(wtssal_v[n][i]) > 0 )
-# plt.show()
-#%%
-n = 1
 i = 60
+exp = 'v'
+if exp == 'v': 
+    xns_b, yns_b = xns_v, yns_v
+    hints_b = hints_v
+elif exp == 't': 
+    xns_b, yns_b = xns_t, yns_t
+    hints_b = hints_t
 
-dife = np.copy( difs_v[n][i] )
-dife[np.isnan(dife)] = 1000
+fig, ax = plt.subplot_mosaic([[r'$a)$',r'$b)$',r'$c)$']], layout='tight', figsize=(11.5,5) , sharex=False)
 
-wts = watershed( gaussian(dife,sigma=7), mask= ~np.isnan(difs_v[n][i]) )
-# wts = watershed( snd.maximum_filter(dife, size=(50,50)), mask= ~np.isnan(difs_v[n][i]) )
+ns = [4,10,14]
 
-sobb = sobel(wts) > 0
-soy,sox = np.where(sobb)
+for j,(labels,axs) in enumerate(ax.items()):
+    
+    n = ns[j]
+    minx,maxx = np.min( xns_b[n] ), np.max( xns_b[n] )
+    miny,maxy = np.min( yns_b[n] ), np.max( yns_b[n] )
+    dx = xns_b[n][0,1] - xns_b[n][0,0]
+    dy = yns_b[n][0,0] - yns_b[n][1,0]
+    imhe = axs.imshow( hints_b[n][i], extent=(minx,maxx,miny,maxy), aspect= dy/dx )
+    
+    topy,boty = np.max( (yns_b[n])[~np.isnan(hints_b[n][i])] ), np.min( (yns_b[n])[~np.isnan(hints_b[n][i])] )
+    topx,botx = np.max( (xns_b[n])[~np.isnan(hints_b[n][i])] ), np.min( (xns_b[n])[~np.isnan(hints_b[n][i])] )
+    midx = np.mean( (xns_b[n])[~np.isnan(hints_b[n][i])] )
 
+    if j == 0: fig.colorbar(imhe, label='height (mm)', location='right', shrink=0.9, ticks=list(range(-41,-61,-3)))
+    else: fig.colorbar(imhe, label='height (mm)', location='right', shrink=0.9) 
 
+    axs.plot([midx-25,midx+25],[boty-10,boty-10],'k-', linewidth=3 )
+    axs.text(midx, boty-27, '5 cm')
+    axs.axis('off')
+    axs.set_ylim( top = topy + 5 )
+    axs.set_xlim(botx-2,topx+2)
+    
+    axs.annotate(labels, (-0.11,0.96), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
 
-plt.figure()
-plt.imshow(difs_v[n][i])
-plt.plot(sox,soy,'k.', markersize=1)
+# plt.savefig('./Documents/Figs morpho draft/profiles_s1.png',dpi=400, bbox_inches='tight', transparent=True)
 plt.show()
 #%%
+exp = 't'
+if exp == 'v': 
+    xns_b, yns_b = xns_v, yns_v
+    hints_b = hints_v
+elif exp == 't': 
+    xns_b, yns_b = xns_t, yns_t
+    hints_b = hints_t
 
-t1 = time()
-saa = sato( -difs_v[n][i] )
-sk = thin( (saa / np.nanmax(saa)) > 0.15 )
-t2=time()
-# dife = np.copy(difs_v[n][i])
-# dife[np.isnan(dife)] = 0.0
-# hss = hessian( dife )
-# # sk2 = thin( (saa / np.nanmax(saa)) > 0.15 )
-# gas = gaussian( hss * saa, 5)
-# sk2 = thin(gas>0.1)
-t3=time()
+fig, ax = plt.subplot_mosaic([[r'$a)$',r'$b)$',r'$c)$']], layout='tight', figsize=(12,5) , sharex=False)
 
+ns = [1,1,1] #,10,18]
+ies = [20,40,60]
 
-print(t3-t2,t2-t1)
-print(t3-t1)
+for j,(labels,axs) in enumerate(ax.items()):
+    
+    n = ns[j]
+    i = ies[j]
+    minx,maxx = np.min( xns_b[n] ), np.max( xns_b[n] )
+    miny,maxy = np.min( yns_b[n] ), np.max( yns_b[n] )
+    dx = xns_b[n][0,1] - xns_b[n][0,0]
+    dy = yns_b[n][0,0] - yns_b[n][1,0]
+    if j ==0: imhe = axs.imshow( hints_b[n][i], extent=(minx,maxx,miny,maxy), vmax=None, vmin=None, aspect= dy/dx )
+    elif j == 1: imhe = axs.imshow( hints_b[n][i], extent=(minx,maxx,miny,maxy), vmax=None, vmin=None, aspect= dy/dx )
+    elif j == 2: imhe = axs.imshow( hints_b[n][i], extent=(minx,maxx,miny,maxy), vmax=None, vmin=None, aspect= dy/dx  )
+    # elif j == 2: imhe = axs.imshow( hints_b[n][i], extent=(minx,maxx,miny,maxy), vmax=-85, vmin=-105  )
+    
+    if j == 0:
+        topy,boty = np.max( (yns_b[n])[~np.isnan(hints_b[n][i])] ), np.min( (yns_b[n])[~np.isnan(hints_b[n][i])] )
+        topx,botx = np.max( (xns_b[n])[~np.isnan(hints_b[n][i])] ), np.min( (xns_b[n])[~np.isnan(hints_b[n][i])] )
+        midx = np.mean( (xns_b[n])[~np.isnan(hints_b[n][i])] )
 
-s1y,s1x = np.where(sk)
-# s2y,s2x = np.where(sk2)
+    # cbar_ax = fig.add_axes([0.18, 0.18, 0.015, 0.65])
+    # if j == 0: fig.colorbar(imhe, label='height (mm)', location='right', shrink=0.9, ticks=list(range(-41,-61,-3))) #, cax=cbar_ax)
+    # else: fig.colorbar(imhe, label='height (mm)', location='right', shrink=0.9) #, cax=cbar_ax)
+    fig.colorbar(imhe, label='height (mm)', location='right', shrink=0.7) #, cax=cbar_ax)
 
-kernel = np.ones((5,5))
-# kerx,kery = np.cumsum(kernel,axis=1)-1, np.cumsum(kernel,axis=0)-1
-kernel[0,:] = 0
-kernel[-1,:] = 0
-kernel[1,1:4] = 0
-kernel[-2,1:4] = 0
-# kernel = np.array([[1,0,1],[1,1,1],[1,0,1]]) * 1.
+    axs.plot([midx-25,midx+25],[boty-10,boty-10],'k-', linewidth=3 )
+    axs.text(midx, boty-27, '5 cm')
+    axs.axis('off')
+    axs.set_ylim( top = topy + 5 )
+    axs.set_xlim(botx-2,topx+2)
+    
+    axs.annotate(labels, (-0.11,0.96), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
 
-print(kernel)
-# plt.figure()
-# plt.imshow(difs_v[n][i])
-# plt.plot(s1x,s1y,'k.')
-# plt.show()
-
-plt.figure()
-plt.imshow(sk)
-plt.show()
-plt.figure()
-plt.imshow( (snd.convolve(sk*1., kernel) * sk) > 2 )
-plt.show()
-
-# plt.figure()
-# plt.imshow( sk2 )
-# plt.show()
-#%%
-i = 50
-plt.figure()
-plt.imshow(difs_v[0][i])
-plt.show()
-plt.figure()
-plt.imshow(difs_v[3][i])
-plt.show()
-plt.figure()
-plt.imshow(difs_v[13][i])
+# plt.tight_layout()
+# plt.savefig('./Documents/Figs morpho draft/profiles_tt.png',dpi=400, bbox_inches='tight', transparent=True)
 plt.show()
 
 #%%
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import ndimage as ndi
 
-from skimage.segmentation import watershed
-from skimage.feature import peak_local_max
-
-
-# Generate an initial image with two overlapping circles
-x, y = np.indices((80, 80))
-x1, y1, x2, y2 = 28, 28, 44, 52
-r1, r2 = 16, 20
-mask_circle1 = (x - x1) ** 2 + (y - y1) ** 2 < r1**2
-mask_circle2 = (x - x2) ** 2 + (y - y2) ** 2 < r2**2
-image = np.logical_or(mask_circle1, mask_circle2)
-
-# Now we want to separate the two objects in image
-# Generate the markers as local maxima of the distance to the background
-distance = ndi.distance_transform_edt(image)
-coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=image)
-mask = np.zeros(distance.shape, dtype=bool)
-mask[tuple(coords.T)] = True
-markers, _ = ndi.label(mask)
-labels = watershed(-distance, markers, mask=image)
-
-fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
-ax = axes.ravel()
-
-ax[0].imshow(image, cmap=plt.cm.gray)
-ax[0].set_title('Overlapping objects')
-ax[1].imshow(-distance, cmap=plt.cm.gray)
-ax[1].set_title('Distances')
-ax[2].imshow(labels, cmap=plt.cm.nipy_spectral)
-ax[2].set_title('Separated objects')
-
-for a in ax:
-    a.set_axis_off()
-
-fig.tight_layout()
-plt.show()
 #%%
 # =============================================================================
 # Watershed gaussian
@@ -2395,9 +1908,9 @@ for n in tqdm(range(len(salis_t))):
     difs_t.append(difes)
 
 #%%
-def countour_mean(wtssal_b,n,i,label, ve=True, dif=True):
+def countour_mean(wtssal_b,n,i,labe, ve=True, dif=True):
 
-    sccaa = wtssal_b[n][i] == label
+    sccaa = wtssal_b[n][i] == labe
     ccoo = np.where( sccaa ^ binary_erosion(sccaa,disk(1)) )
 
     if ve:    
@@ -2597,11 +2110,11 @@ i = -1
 
 
 # # wtssal_b,n,i,label, 
-label = 31
+labe = 31
 ve=True
 dif=False
 
-sccaa = wtssal_v[n][i] == label+1
+sccaa = wtssal_v[n][i] == labe+1
 ccoo = np.where( sccaa ^ binary_erosion(sccaa,disk(1)) )
 
 if ve:    
@@ -2615,7 +2128,7 @@ else:
 # plt.imshow( hints_v[n][i] )
 # plt.colorbar()
 # # plt.imshow( binary_erosion(sccaa,disk(1)) )
-# # plt.imshow(wtssal_v[n][i] == label, alpha=0.2)
+# # plt.imshow(wtssal_v[n][i] == labe, alpha=0.2)
 # plt.plot( np.where( sccaa ^ binary_erosion(sccaa,disk(1)))[1], np.where( sccaa ^ binary_erosion(sccaa,disk(1)) )[0], 'r.' )
 # plt.show()
 
@@ -2623,10 +2136,10 @@ scaprop = propscal_v[n]
 np.array( [ countour_mean(wtssal_v,n,i,j+1,dif=False) - scaprop[i][j].image_min for j in range(len(scaprop[i])) ] )
 # # np.array( [ [countour_mean(wtssal_v,n,i,j,ve=True,dif=False), scaprop[i][j].image_min] for j in range(len(scaprop[i])) ] ), np.nanmean(conval)
 
-# countour_mean(wtssal_v,n,i,label+1,ve=True,dif=False),  np.nanmean(conval)
-# scaprop[i][label].image_min , np.nanmin([hints_v[n][i][np.where(sccaa)]]) #, np.nanmin([hints_v[n][i][np.where( binary_erosion(sccaa,disk(1)) )]]) 
+# countour_mean(wtssal_v,n,i,labe+1,ve=True,dif=False),  np.nanmean(conval)
+# scaprop[i][labe].image_min , np.nanmin([hints_v[n][i][np.where(sccaa)]]) #, np.nanmin([hints_v[n][i][np.where( binary_erosion(sccaa,disk(1)) )]]) 
 
-# # np.shape(scaprop[i][label].image_intensity)
+# # np.shape(scaprop[i][labe].image_intensity)
 
 #%%
 
@@ -3279,7 +2792,8 @@ for l,n in enumerate([7,8,15]):
 
 ax[r'$a)$'].set_xlabel('Time (min)')
 ax[r'$a)$'].set_ylabel(r'Area (cm$^2$)')
-ax[r'$a)$'].legend(bbox_to_anchor=(0.5,1.15), loc='upper center' , ncol=3, columnspacing=0.5)
+# ax[r'$a)$'].legend(bbox_to_anchor=(0.5,1.15), loc='upper center' , ncol=3, columnspacing=0.5)
+ax[r'$a)$'].legend(loc='upper right')
 
 # li1ys = []
 # for n in nss_v:
@@ -3347,8 +2861,8 @@ for n in ns_v:
     sarms_v.append(sarm)
 
 # plt.figure()
-barviolin( sarms_v, ax[r'$b)$'], x=salis_v[ns_v], bins=12, width=10, color='blue' )
-barviolin( sarms_t, ax[r'$b)$'], x=salis_t[ns_t], bins=12, width=10, color='red' )
+barviolin( sarms_v, ax[r'$b)$'], x=salis_v[ns_v], bins=12, width=10, color='blue', label='Set 1' )
+barviolin( sarms_t, ax[r'$b)$'], x=salis_t[ns_t], bins=12, width=10, color='red' , label='Set 2')
 # plt.xticks(salis_v[ns_v])
 # plt.xticks(salis_t[ns_t])
 ax[r'$b)$'].set_ylim(0,25)
@@ -3359,7 +2873,7 @@ ax[r'$b)$'].set_ylabel(r'Area (cm$^2$)')
 for labels,axs in ax.items():
     axs.annotate(labels, (-0.13,0.96), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
 
-# plt.savefig('./Documents/Figs morpho draft/areas.png',dpi=400, bbox_inches='tight', transparent=False)
+plt.savefig('./Documents/Figs morpho draft/areas.png',dpi=400, bbox_inches='tight', transparent=False)
 plt.show()
 
 
@@ -3483,6 +2997,79 @@ fig, ax = plt.subplot_mosaic([[r'$a)$',r'$b)$']], layout='tight', figsize=(12/1.
 for n in [7,8,15]:
     mimam, mimas = [],[]
     for i in range(len(smms_t[n])):
+        mimam.append( np.nanmean(smms_t[n][i]) )
+        mimas.append( np.nanstd(smms_t[n][i]) )
+        # mimam.append( np.nanmean(smes_t[n][i]) )
+        # mimas.append( np.nanstd(smes_t[n][i]) )
+        # mimam.append( np.nanmean(ssds_t[n][i]) )
+        # mimas.append( np.nanstd(ssds_t[n][i]) )
+    
+    ax[r'$a)$'].errorbar(ts_t[n]/60, mimam, yerr=mimas, fmt='o-', capsize=2, label=r'$S = $'+str(salis_t[n])+' g/kg')
+
+ax[r'$a)$'].set_xlabel('time (min)')
+ax[r'$a)$'].set_ylabel('Amplitud (mm)')
+ax[r'$a)$'].set_ylim(bottom=0)
+ax[r'$a)$'].legend(loc='upper left')
+
+ave = 20
+li1s = []
+for n in nss_v:
+    if salis_v[n] > 7 and salis_v[n] < 25:
+        mimam, mimas = [],[]
+        for i in range(len(smms_v[n])):
+            mimam.append( np.nanmean(smms_v[n][i]) )
+            mimas.append( np.nanstd(smms_v[n][i]) )
+            # mimam.append( np.nanmean(smes_v[n][i]) )
+            # mimas.append( np.nanstd(smes_v[n][i]) )
+            # mimam.append( np.nanmean(ssds_v[n][i]) )
+            # mimas.append( np.nanstd(ssds_v[n][i]) )
+        
+        ascm, ascs = np.mean((mimam)[-ave:]), np.mean(mimas[-ave:])
+        li1 = ax[r'$b)$'].errorbar(salis_v[n], ascm, yerr = ascs, capsize=2, fmt='o', \
+                     markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
+        li1s.append(li1)
+    
+li2s = []
+for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
+    mimam, mimas = [],[]
+    for i in range(len(smms_t[n])):
+        mimam.append( np.nanmean(smms_t[n][i]) )
+        mimas.append( np.nanstd(smms_t[n][i]) )
+        # mimam.append( np.nanmean(smes_t[n][i]) )
+        # mimas.append( np.nanstd(smes_t[n][i]) )
+        # mimam.append( np.nanmean(ssds_t[n][i]) )
+        # mimas.append( np.nanstd(ssds_t[n][i]) )
+
+    ascm, ascs = np.mean((mimam)[-ave:]), np.mean(mimas[-ave:])
+    # li2 = ax.errorbar(salis_t[n], ascm, yerr = ascs, capsize=2, fmt='o-', \
+    #              markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
+    li2 = ax[r'$b)$'].errorbar(salis_t[n], ascm, yerr = ascs, capsize=2, fmt='o', \
+                 markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) ) 
+    li2s.append(li2)
+        
+ax[r'$b)$'].set_xlabel('Salinity (g/kg)')
+ax[r'$b)$'].set_ylabel('Amplitude (mm)')
+# ax.set_ylim(bottom=0)
+
+ax[r'$b)$'].legend( [li1s[-1],li2s[-1],li2s[3],li2s[1],li2s[2]],['Set 1', 'Set 2',r'-$15°$',r'$15°$',r'$30°$'],\
+                   bbox_to_anchor=(0.5,1.14), loc='upper center' , ncol=5, columnspacing=0.5 )
+
+
+for labels,axs in ax.items():
+    axs.annotate(labels, (-0.13,0.96), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
+
+    
+# plt.savefig('./Documents/Figs morpho draft/amplitudes.png',dpi=400, bbox_inches='tight', transparent=True)
+plt.show()
+#%%
+def linear(x,a,b):
+    return a*x + b
+
+fig, ax = plt.subplot_mosaic([[r'$a)$',r'$b)$']], layout='tight', figsize=(12/1.,5/1.) ) #, sharex=True)
+
+for n in [7,8,15]:
+    mimam, mimas = [],[]
+    for i in range(len(smms_t[n])):
         # mimam.append( np.nanmean(smms_t[n][i]) )
         # mimas.append( np.nanstd(smms_t[n][i]) )
         mimam.append( np.nanmean(smes_t[n][i]) )
@@ -3497,44 +3084,50 @@ ax[r'$a)$'].set_ylabel('Amplitud (mm)')
 ax[r'$a)$'].set_ylim(bottom=0)
 ax[r'$a)$'].legend(loc='upper left')
 
-ave = 5
+ave = 40
 li1s = []
 for n in nss_v:
     if salis_v[n] > 7 and salis_v[n] < 25:
         mimam, mimas = [],[]
         for i in range(len(smms_v[n])):
-            # mimam.append( np.nanmean(smms_v[n][i]) )
-            # mimas.append( np.nanstd(smms_v[n][i]) )
-            mimam.append( np.nanmean(smes_v[n][i]) )
-            mimas.append( np.nanstd(smes_v[n][i]) )
+            mimam.append( np.nanmean(smms_v[n][i]) )
+            mimas.append( np.nanstd(smms_v[n][i]) )
+            # mimam.append( np.nanmean(smes_v[n][i]) )
+            # mimas.append( np.nanstd(smes_v[n][i]) )
             # mimam.append( np.nanmean(ssds_v[n][i]) )
             # mimas.append( np.nanstd(ssds_v[n][i]) )
         
-        ascm, ascs = np.mean((mimam)[-ave:]), np.mean(mimas[-ave:])
-        li1 = ax[r'$b)$'].errorbar(salis_v[n], ascm, yerr = ascs, capsize=2, fmt='o', \
+        lof = curve_fit(linear,ts_v[n][-ave:]/60, mimam[-ave:], sigma=mimas[-ave:], absolute_sigma=True)
+        li1 = ax[r'$b)$'].errorbar(salis_v[n], lof[0][0], yerr = np.sqrt(lof[1][0,0]), capsize=2, fmt='o', \
                      markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
+        
+        # lres = linregress(ts_v[n][-ave:]/60, mimam[-ave:])        
+        # li1 = ax[r'$b)$'].errorbar(salis_v[n], lres[0], yerr = lres[4], capsize=2, fmt='o', \
+        #              markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
         li1s.append(li1)
     
 li2s = []
 for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
     mimam, mimas = [],[]
     for i in range(len(smms_t[n])):
-        # mimam.append( np.nanmean(smms_t[n][i]) )
-        # mimas.append( np.nanstd(smms_t[n][i]) )
-        mimam.append( np.nanmean(smes_t[n][i]) )
-        mimas.append( np.nanstd(smes_t[n][i]) )
+        mimam.append( np.nanmean(smms_t[n][i]) )
+        mimas.append( np.nanstd(smms_t[n][i]) )
+        # mimam.append( np.nanmean(smes_t[n][i]) )
+        # mimas.append( np.nanstd(smes_t[n][i]) )
         # mimam.append( np.nanmean(ssds_t[n][i]) )
         # mimas.append( np.nanstd(ssds_t[n][i]) )
 
-    ascm, ascs = np.mean((mimam)[-ave:]), np.mean(mimas[-ave:])
-    # li2 = ax.errorbar(salis_t[n], ascm, yerr = ascs, capsize=2, fmt='o-', \
-    #              markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2 = ax[r'$b)$'].errorbar(salis_t[n], ascm, yerr = ascs, capsize=2, fmt='o', \
+    lof = curve_fit(linear,ts_t[n][-ave:]/60, mimam[-ave:], sigma=mimas[-ave:], absolute_sigma=True)
+    li2 = ax[r'$b)$'].errorbar(salis_t[n], lof[0][0], yerr = np.sqrt(lof[1][0,0]), capsize=2, fmt='o', \
                  markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) ) 
+        
+    # lres = linregress(ts_t[n][-ave:]/60, mimam[-ave:])        
+    # li2 = ax[r'$b)$'].errorbar(salis_t[n], lres[0], yerr = lres[4], capsize=2, fmt='o', \
+    #              markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) ) 
     li2s.append(li2)
         
 ax[r'$b)$'].set_xlabel('Salinity (g/kg)')
-ax[r'$b)$'].set_ylabel('Amplitude (mm)')
+ax[r'$b)$'].set_ylabel('Growth rate (mm/min)')
 # ax.set_ylim(bottom=0)
 
 ax[r'$b)$'].legend( [li1s[-1],li2s[-1],li2s[3],li2s[1],li2s[2]],['Set 1', 'Set 2',r'-$15°$',r'$15°$',r'$30°$'],\
@@ -3567,6 +3160,76 @@ for i in range(len(centss_v[n])):
 plt.show()
 
 # len(centss_v[n][i][:,0]), len( lys_v[n][i] * dy )
+#%%
+# Amplitud vs vertical wavelength
+
+andre = np.loadtxt('./Downloads/plot-data-2.csv', delimiter=',', skiprows=1 )
+
+
+#%%
+ust = 1e-2 /1. # m/s
+nu = 1e-6 * 2.25 # m^2/s
+un = ust / nu
+
+plt.figure()
+myt, mmt = [],[]
+for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
+# for l,n in enumerate([7,8,15]):
+    dx = xns_t[n][0,1] - xns_t[n][0,0]
+    dy = yns_t[n][0,0] - yns_t[n][1,0]
+    
+    mly, mimam = [], []
+    les = len(lys_t[n]) 
+    # for i in range(len(lys_t[n])):
+    for i in range(les-10,les):
+        mly.append(np.nanmean(lys_t[n][i]) * dy)
+        mimam.append( np.nanmean(smms_t[n][i]) )
+        
+        plt.scatter( (lys_t[n][i] * dy * 1e-3 * un)**-1, smms_t[n][i] * 1e-3 * un, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
+    myt.append( np.nanmean(mly) )
+    mmt.append( np.nanmean(mimam) )
+
+plt.plot(andre[:,0], andre[:,1], 'k-')
+plt.xlabel(r'$\lambda_y$ (mm)')
+plt.ylabel(r'Amplitud (mm)')
+# plt.title( 'Salinity = '+str(salis_t[n])+' g/kg' )
+plt.xscale('log')
+plt.show()
+
+plt.figure()
+myv, mmv = [],[]
+for n in nss_v:
+    if salis_v[n] > 7 and salis_v[n] < 25:
+        dx = xns_v[n][0,1] - xns_v[n][0,0]
+        dy = yns_v[n][0,0] - yns_v[n][1,0]
+        
+        mly, mimam = [], []
+        les = len(lys_v[n]) 
+        # for i in range(len(lys_v[n])):
+        for i in range(les-10,les):
+            mly.append(np.nanmean(lys_v[n][i]) * dy)
+            mimam.append( np.nanmean(smms_v[n][i]) )
+            
+            plt.scatter( (lys_v[n][i] * dy *1e-3 * un)**-1 , smms_v[n][i] * 1e-3 * un , color=(0.5,1-salis_v[n]/35,salis_v[n]/35) )
+        myv.append( np.nanmean(mly) )
+        mmv.append( np.nanmean(mimam) )
+            
+plt.plot(andre[:,0], andre[:,1], 'k-')
+plt.xlabel(r'$\lambda_y$ (mm)')
+plt.ylabel(r'Amplitud (mm)')
+# plt.title( 'Salinity = '+str(salis_v[n])+' g/kg' )
+plt.xscale('log')
+plt.show()
+
+
+plt.figure()
+plt.scatter( (np.array(myt) *1e-3 * un)**(-1), np.array(mmt) * 1e-3 * un )
+plt.scatter( (np.array(myv) *1e-3 * un)**(-1), np.array(mmv) * 1e-3 * un )
+plt.plot(andre[:,0], andre[:,1], 'k-')
+plt.xscale('log')
+plt.show()
+
+
 #%%
 #Violin area
 def barviolin(data, x = [0], height=1.0, width=1.0, bins=20, alpha=0.5, color=[], ):
@@ -3780,579 +3443,6 @@ plt.show()
 
 
 #%%
-# =============================================================================
-# aaaaaa
-# =============================================================================
-def image_stdev(region, intensities):
-    # note the ddof arg to get the sample var if you so desire!
-    return np.std(intensities[region]) #, ddof=0)
-def image_minmax(region, intensities):
-    # note the ddof arg to get the sample var if you so desire!
-    return np.max(intensities[region]) - np.min(intensities[region])  
-
-# with finding minima + watershed
-wtssal2_v, propscal2_v, totars2_v = [],[], []
-for n in tqdm(range(len(ds_v))):
-    wats, scaprop = [], []
-    
-    for i in range(len(difs_v[n])):
-
-        dife = np.copy(difs_v[n][i])
-        dife[np.isnan(dife)] = 1
-        sdi = sato(-dife, range(10,12,1) )
-        wts = watershed( sdi, mask= dilation( ~np.isnan(difs_v[n][i]),disk(3) ) )
-        
-        wats.append(wts)
-        scaprop.append( regionprops(wts, intensity_image= gaussian(difs_v[n][i],sigma=1) , extra_properties=[image_stdev,image_minmax]) )
-    
-    xs,ys = xns_v[n], yns_v[n]
-    area = np.trapz( np.trapz(~np.isnan(hints_v[n]) * 1.0, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
-        
-    totars2_v.append(area)
-    wtssal2_v.append(wats)
-    propscal2_v.append( scaprop )
-
-wtssal2_t, propscal2_t, totars2_t = [],[], []
-for n in tqdm(range(len(ds_t))):
-    wats, scaprop = [], []
-    
-    for i in range(len(difs_t[n])):
-
-        dife = np.copy(difs_t[n][i])
-        dife[np.isnan(dife)] = 1
-        sdi = sato(-dife, range(10,12,1) )
-        wts = watershed( sdi, mask= dilation( ~np.isnan(difs_t[n][i]),disk(3) ) )
-
-        
-        wats.append(wts)
-        scaprop.append( regionprops(wts, intensity_image= gaussian(difs_t[n][i],sigma=1) , extra_properties=[image_stdev,image_minmax]) )
-    
-    xs,ys = xns_t[n], yns_t[n]
-    area = np.trapz( np.trapz(~np.isnan(hints_t[n]) * 1.0, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
-        
-    totars2_t.append(area)
-    wtssal2_t.append(wats)
-    propscal2_t.append( scaprop )
-
-#%%
-nss_v = list(range(len(ds_v)))
-lxs_v,lys_v = [],[]
-sscas_v, centss_v, centws_v, nscas_v, nscafs_v, labs_v = [], [], [], [], [], []
-ssds_v, smms_v = [], []
-
-for n in tqdm(nss_v):
-    lx,ly  = [],[]
-    ssca,cents,centws,nsca,nscaf,labe = [], [], [], [], [], []
-    ssd, smm = [], []
-
-    scaprop = propscal2_v[n]
-    for i in range(len(scaprop)):
-        cen = np.array( [ scaprop[i][j].centroid for j in range(len(scaprop[i])) ] )
-        cenw = np.array( [ scaprop[i][j].centroid_weighted for j in range(len(scaprop[i])) ] )
-        scas = np.array( [ scaprop[i][j].area for j in range(len(scaprop[i])) ] )
-        slab = np.array( [ scaprop[i][j].label for j in range(len(scaprop[i])) ] )
-        
-        sd = np.array( [ scaprop[i][j].image_stdev for j in range(len(scaprop[i])) ] )
-        mm = np.array( [ scaprop[i][j].image_minmax for j in range(len(scaprop[i])) ] )
-
-        nijs = np.array( [ (scaprop[i][j].moments_normalized).T for j in range(len(scaprop[i])) ] )
-
-        bn = (12 * scas**2)**(1/4) * (nijs[:,2,0]**3 / nijs[:,0,2] )**(1/8)
-        hn = (12 * scas**2)**(1/4) * (nijs[:,0,2]**3 / nijs[:,2,0] )**(1/8)
-        
-        fil = (scas>800) * ( sd>0.4 )  #* ((scas/sd)<18000) #(scas>2000) * ( sd>0.3 )
-        
-        nsca.append( len(scaprop[i]) )
-        nscaf.append( np.sum( fil ) )
-
-        ssca.append(scas[fil])
-        cents.append(cen[fil])
-        centws.append(cenw[fil])
-        labe.append(slab[fil])
-        lx.append(bn[fil])
-        ly.append(hn[fil])
-        ssd.append(sd[fil])
-        smm.append(mm[fil])
-        
-    sscas_v.append(ssca)
-    centss_v.append(cents)
-    centws_v.append(centws)
-    labs_v.append(labe)
-    nscas_v.append(nsca)
-    nscafs_v.append(nscaf)
-    ssds_v.append(ssd)
-    smms_v.append(smm)
-    lxs_v.append(lx)
-    lys_v.append(ly)
-
-
-nss_t = list(range(len(ds_t)))
-lxs_t,lys_t = [],[]
-sscas_t, centss_t, centws_t, nscas_t, nscafs_t, labs_t = [], [], [], [], [], []
-ssds_t, smms_t = [], []
-
-for n in tqdm(nss_t):
-    lx,ly  = [],[]
-    ssca,cents,centws,nsca,nscaf,labe = [], [], [], [], [], []
-    ssd, smm = [], []
-
-    scaprop = propscal2_t[n]
-    for i in range(len(scaprop)):
-        cen = np.array( [ scaprop[i][j].centroid for j in range(len(scaprop[i])) ] )
-        cenw = np.array( [ scaprop[i][j].centroid_weighted for j in range(len(scaprop[i])) ] )
-        scas = np.array( [ scaprop[i][j].area for j in range(len(scaprop[i])) ] )
-        slab = np.array( [ scaprop[i][j].label for j in range(len(scaprop[i])) ] )
-        
-        sd = np.array( [ scaprop[i][j].image_stdev for j in range(len(scaprop[i])) ] )
-        mm = np.array( [ scaprop[i][j].image_minmax for j in range(len(scaprop[i])) ] )
-
-        nijs = np.array( [ (scaprop[i][j].moments_normalized).T for j in range(len(scaprop[i])) ] )
-
-        bn = (12 * scas**2)**(1/4) * (nijs[:,2,0]**3 / nijs[:,0,2] )**(1/8)
-        hn = (12 * scas**2)**(1/4) * (nijs[:,0,2]**3 / nijs[:,2,0] )**(1/8)
-        
-        fil = (scas>800) * ( sd>0.4 )  #* ((scas/sd)<18000) # (scas>2000) * (sd>0.3)
-        
-        nsca.append( len(scaprop[i]) )
-        nscaf.append( np.sum( fil ) )
-
-        ssca.append(scas[fil])
-        cents.append(cen[fil])
-        centws.append(cenw[fil])
-        labe.append(slab[fil])
-        lx.append(bn[fil])
-        ly.append(hn[fil])
-        ssd.append(sd[fil])
-        smm.append(mm[fil])
-        
-    sscas_t.append(ssca)
-    centss_t.append(cents)
-    centws_t.append(centws)
-    labs_t.append(labe)
-    nscas_t.append(nsca)
-    nscafs_t.append(nscaf)
-    ssds_t.append(ssd)
-    smms_t.append(smm)
-    lxs_t.append(lx)
-    lys_t.append(ly)
-    
-#%%
-
-n = 8 #15
-i = 40
-
-exp = 'v'
-if exp == 'v': 
-    wtssal_b = wtssal2_v
-    xns_b, yns_b = xns_v, yns_v
-    difs_b = difs_v
-    labs_b, sscas_b = labs_v, sscas_v
-elif exp == 't': 
-    wtssal_b = wtssal2_t
-    xns_b, yns_b = xns_t, yns_t
-    difs_b = difs_t
-    labs_b, sscas_b = labs_t, sscas_t
-
-sobb = thin(sobel(wtssal_b[n][i]) > 0)
-soy,sox = np.where(sobb)
-
-minx,maxx = np.min( xns_b[n] ), np.max( xns_b[n] )
-miny,maxy = np.min( yns_b[n] ), np.max( yns_b[n] )
-dx = xns_b[n][0,1] - xns_b[n][0,0]
-dy = yns_b[n][0,0] - yns_b[n][1,0]
-print(dx,dy,dx*dy)
-
-fig,axs = plt.subplots(1,3, figsize=(8,5), sharey=True)
-
-ims1 = axs[1].imshow(difs_b[n][i], extent=(minx,maxx,miny,maxy))
-axs[1].plot( xns_b[n][0,:][sox], yns_b[n][:,0][soy], 'k.', markersize=1)
-for j in range(len(sscas_b[n][i])):
-    # plt.text(centss_b[n][i][j][1], centss_b[n][i][j][0] , str(round(lys_b[n][i][j]/1. ,2)) )
-    # plt.text(centss_b[n][i][j][1], centss_b[n][i][j][0] , str(round(sscas_b[n][i][j]/1. ,2)) )
-    # plt.text(centss_b[n][i][j][1], centss_b[n][i][j][0] , str(round(ssds_b[n][i][j]/1. ,2)) )
-    pass
-
-axs[2].imshow(difs_b[n][i], extent=(minx,maxx,miny,maxy))
-axs[2].plot( xns_b[n][0,:][sox], yns_b[n][:,0][soy], 'k.', markersize=1)
-mask = np.zeros_like(wtssal_b[n][i])
-for j in range(len(labs_b[n][i])):
-    mask += wtssal_b[n][i] == labs_b[n][i][j]
-mask += np.isnan(difs_b[n][i])
-amask = np.ma.masked_where(mask, mask)
-axs[2].imshow( amask, extent=(minx,maxx,miny,maxy), alpha = 0.5 )
-
-
-ims2 = axs[0].imshow(difs_b[n][i], extent=(minx,maxx,miny,maxy)) #, vmin=-5)
-
-
-for j in range(3):
-    axs[j].plot([-30,20],[-188,-188],'k-', linewidth=3 )
-    axs[j].text(-25, -209, '5 cm')
-    axs[j].axis('off')
-    # axs[j].set_ylim(top=125)
-    # axs[j].set_xlim(-55,75)
-    pass
-
-
-fig.subplots_adjust(left=0.2)
-cbar_ax = fig.add_axes([0.13, 0.23, 0.02, 0.59])
-fig.colorbar(ims2, cax=cbar_ax, label='height (mm)', location='left')
-
-# plt.tight_layout()
-# plt.savefig('./Documents/watershed0.png',dpi=400, bbox_inches='tight', transparent=True)
-plt.show()
-
-#%%
-
-n = 13
-i = 80
-
-exp = 'v'
-if exp == 'v': 
-    wtssal_b = wtssal2_v
-    xns_b, yns_b = xns_v, yns_v
-    difs_b = difs_v
-    labs_b, sscas_b, centss_b, ssds_b = labs_v, sscas_v, centss_v, ssds_v
-elif exp == 't': 
-    wtssal_b = wtssal2_t
-    xns_b, yns_b = xns_t, yns_t
-    difs_b = difs_t
-    labs_b, sscas_b, centss_b, ssds_b = labs_t, sscas_t, centss_t, ssds_t
-
-sobb = sobel(wtssal_b[n][i]) > 0
-soy,sox = np.where(sobb)
-
-dx = xns_b[n][0,1] - xns_b[n][0,0]
-dy = yns_b[n][0,0] - yns_b[n][1,0]
-print(dx,dy, dx*dy)
-
-plt.figure()
-plt.imshow(difs_b[n][i])
-plt.plot(sox,soy, 'r.', markersize=3)
-for j in range(len(sscas_b[n][i])):
-    # plt.text(centss_b[n][i][j][1], centss_b[n][i][j][0] , str(round(lys_b[n][i][j]/1. ,2)) )
-    # plt.text(centss_b[n][i][j][1], centss_b[n][i][j][0] , str(round(sscas_b[n][i][j]/1. ,2)) )
-    plt.text(centss_b[n][i][j][1], centss_b[n][i][j][0] , str(round(ssds_b[n][i][j]/1. ,2)) )
-plt.show()
-
-
-plt.figure()
-plt.imshow(gaussian(difs_b[n][i],1))
-plt.show()
-
-#%%
-
-cols = np.linspace(0,35,256)
-comap = np.array( [ 0.5 *np.ones_like(cols) , 1-(cols)/35 , cols/35 , 1*np.ones_like(cols) ] )
-comap = comap.T
-newcmp = ListedColormap(comap)
-
-fig,ax = plt.subplots()
-# for l,n in enumerate(nss_v):
-for l,n in enumerate([3,8,10,12,13,2]):
-    dx = xns_v[n][0,1] - xns_v[n][0,0]
-    dy = yns_v[n][0,0] - yns_v[n][1,0]
-    if salis_v[n] > 7 and salis_v[n] < 25: 
-        mly, mlx = [], []
-        sly,slx = [], []
-        for i in range(len(lxs_v[n])):
-            mlx.append(np.nanmean(lxs_v[n][i]) * dx)
-            mly.append(np.nanmean(lys_v[n][i]) * dy)
-            slx.append(np.nanstd(lxs_v[n][i]) * dx)
-            sly.append(np.nanstd(lys_v[n][i]) * dy)
-            
-        # ax.plot( mly , '.-', color=(0.5,1-salis_v[n]/35,salis_v[n]/35), label=r'$S = $'+str(salis_v[n])+' g/kg')
-        ax.errorbar(ts_v[n]/60, mly, yerr=sly, capsize=2, fmt='.-', errorevery=(l*2,20), \
-                      color=(0.5,1-salis_v[n]/35,salis_v[n]/35), label=r'$S = $'+str(salis_v[n])+' g/kg' ) #, markersize=5, mfc='w' )
-
-        # ax.plot( mlx , '.-', color=(0.5,1-salis_v[n]/35,salis_v[n]/35), label=r'$S = $'+str(salis_v[n])+' g/kg')
-        # ax.errorbar(ts_v[n]/60, mlx, yerr=slx, capsize=2, fmt='.-', errorevery=(l*2,20), \
-        #               color=(0.5,1-salis_v[n]/35,salis_v[n]/35), label=r'$S = $'+str(salis_v[n])+' g/kg' ) #, markersize=5, mfc='w' )
-
-
-
-# cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax)
-# # cbar.ax.tick_params(labelsize=12)
-# cbar.set_label( label="S (g/kg)") #, size=12)
-
-# ax.set_ylim(bottom=0)
-# plt.show()
-
-# fig,ax = plt.subplots()
-
-# for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-# # for l,n in enumerate([5,9 ]):
-#     dx = xns_t[n][0,1] - xns_t[n][0,0]
-#     dy = yns_t[n][0,0] - yns_t[n][1,0]
-
-#     mly, mlx = [], []
-#     sly,slx = [], []
-#     for i in range(len(lxs_t[n])):
-#         mlx.append(np.nanmean(lxs_t[n][i]) * dx)
-#         mly.append(np.nanmean(lys_t[n][i]) * dy)
-#         slx.append(np.nanstd(lxs_t[n][i]) * dx)
-#         sly.append(np.nanstd(lys_t[n][i]) * dy)
-        
-#     ax.plot( mly , '.-', color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), label=str(salis_t[n])+'; '+str(ang_t[n]))
-
-#     # ax.errorbar(ts_t[l]/60, mly, yerr=sly, capsize=2, fmt='.-', label=str(salis_t[l])+' g/kg', \
-#     #             errorevery=(l*2,20), color=np.array([0.5,salis_t[l]/35,1-salis_t[l]/35]) ) #, markersize=5, mfc='w' )
-#     # ax.plot( mlx , '.-', color=(0.5,1-salis_t[n]/35,salis_t[n]/35))
-#     # ax.plot( np.array(mlx) / np.array(mly) , '.-', color=(0.5,1-salis_t[n]/35,salis_t[n]/35))
-
-# cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax)
-# # cbar.ax.tick_params(labelsize=12)
-# cbar.set_label( label="S (g/kg)") #, size=12)
-
-# plt.legend(fontsize=8)
-ax.set_ylim(bottom=0)
-ax.set_xlabel('time (min)')
-ax.set_ylabel(r'$\lambda_y$ (mm)')
-# ax.set_ylabel(r'$\lambda_x$ (mm)')
-
-ax.legend(loc='lower left')
-# plt.savefig('./Documents/lamx_t.png',dpi=400, bbox_inches='tight', transparent=True)
-plt.show()
-
-#%%
-# Wavelengths with watershed
-
-# fig,ax = plt.subplots()
-fig, ax = plt.subplot_mosaic([[r'$a)$'],[r'$b)$']], layout='tight', figsize=(7,6) , sharex=True)
-
-
-li1ys,li1xs = [],[]
-for l,n in enumerate(nss_v):
-    dx = xns_v[l][0,1] - xns_v[l][0,0]
-    dy = yns_v[l][0,0] - yns_v[l][1,0]
-    if salis_v[l] > 7 and salis_v[l] < 25: 
-    # if salis_v[l] > -1 and salis_v[l] < 40: 
-        mly, mlx = [], []
-        sly,slx = [], []
-        for i in range(len(lxs_v[l])):
-            mlx.append(np.nanmean(lxs_v[l][i]) * dx)
-            mly.append(np.nanmean(lys_v[l][i]) * dy)
-            # mlx.append(np.nanmedian(lxs_v[l][i]) * dx)
-            # mly.append(np.nanmedian(lys_v[l][i]) * dy)
-            slx.append(np.nanstd(lxs_v[l][i]) * dx)
-            sly.append(np.nanstd(lys_v[l][i]) * dy)
-            
-        indy, indx = np.argmin(mly[30:]), np.argmin(mlx[30:])
-        # ax.errorbar(salis_v[l], mly[indy+30], yerr=sly[indy+30], capsize=2, fmt='.-'  )
-
-        mey, eey = np.nanmean(mly[30:]), np.nanmean(sly[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-        # mey, eey = np.nanmean(mly[-20:]), np.nanmean(sly[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-        li1y = ax[r'$a)$'].errorbar(salis_v[l], mey, yerr=eey, capsize=2, fmt='o', markersize=5, \
-                              color=((angys_v[l]+19)/70,0.5,1-(angys_v[l]+19)/70), mfc='w'  )        
-        li1ys.append(li1y)
-
-        mex, eex = np.nanmean(mlx[30:]), np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-        # mex, eex = np.nanmean(mlx[-20:]), np.nanmean(slx[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-        li1x = ax[r'$b)$'].errorbar(salis_v[l], mex, yerr=eex, capsize=2, fmt='o', markersize=5, \
-                              color=((angys_v[l]+19)/70,0.5,1-(angys_v[l]+19)/70), mfc='w'  )        
-        li1xs.append(li1x)
-        # ax.errorbar(salis_v[l], mex, yerr=eex, capsize=2, fmt='b.', markersize=15, mfc='w', alpha=0.5, label=r'$\lambda_x$'  )
-
-li2ys,li2xs = [],[]
-for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-# for l,n in enumerate(range(len(ds_t))):
-    dx = xns_t[n][0,1] - xns_t[n][0,0]
-    dy = yns_t[n][0,0] - yns_t[n][1,0]
-
-    mly, mlx = [], []
-    sly,slx = [], []
-    for i in range(len(lxs_t[n])):
-        mlx.append(np.nanmean(lxs_t[n][i]) * dx)
-        mly.append(np.nanmean(lys_t[n][i]) * dy)
-        slx.append(np.nanstd(lxs_t[n][i]) * dx)
-        sly.append(np.nanstd(lys_t[n][i]) * dy)
-        
-    indy, indx = np.argmin(mly[30:]), np.argmin(mlx[30:])
-    # ax.errorbar(salis_t[l], mly[indy+30], yerr=sly[indy+30], capsize=2, fmt='.-'  )
-
-    mey, eey = np.nanmean(mly[30:]), np.nanmean(sly[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-    # mey, eey = np.nanmean(mly[-20:]), np.nanmean(sly[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-    # li2y = ax[r'$a)$'].errorbar(salis_t[n], mey, yerr=eey, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2y = ax[r'$a)$'].errorbar(salis_t[n], mey, yerr=eey, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2ys.append(li2y)
-
-    mex, eex = np.nanmean(mlx[30:]), np.nanmean(slx[30:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-    # mex, eex = np.nanmean(mlx[-20:]), np.nanmean(slx[-20:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-    # ax.errorbar(salis_t[l], mex, yerr=eex, capsize=2, fmt='b.', markersize=15, mfc='w', alpha=0.5, label=r'$\lambda_x$'  )
-    # li2x = ax[r'$b)$'].errorbar(salis_t[n], mex, yerr=eex, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2x = ax[r'$b)$'].errorbar(salis_t[n], mex, yerr=eex, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2xs.append(li2x)
-
-
-# ax[r'$a)$'].set_ylim(0,35)
-# ax[r'$b)$'].set_ylim(0,35)
-
-ax[r'$a)$'].set_ylabel(r'$\lambda_y$ (mm)')
-ax[r'$b)$'].set_ylabel(r'$\lambda_x$ (mm)')
-ax[r'$b)$'].set_xlabel('Salinity (g/kg)')
-
-
-ax[r'$a)$'].legend([li1ys[-1],li2ys[-1],li2ys[3],li2ys[1],li2ys[2] ],['Set 1', 'Set 2',r'-$15°$',r'$15°$',r'$30°$'],\
-                   bbox_to_anchor=(0.5,1.2), loc='upper center' , ncol=5 )
-
-# plt.savefig('./Documents/lamxy_s.png',dpi=400, bbox_inches='tight', transparent=True)
-plt.show()
-
-
-#%%
-# Area scallops (y quiza numero)
-
-fig,ax = plt.subplots()
-
-# for n in nss_v:
-# for l,n in enumerate([8,10,13]):
-for l,n in enumerate([0,3,8]):
-    if salis_v[n] > 7 and salis_v[n] < 25: 
-        dx = xns_v[n][0,1] - xns_v[n][0,0]
-        dy = yns_v[n][0,0] - yns_v[n][1,0]
-        
-        sarm,sars = [], []
-        for i in range(len(sscas_v[n])):
-            sarm.append( np.nanmean(sscas_v[n][i] * dx*dy) )
-            sars.append( np.nanstd(sscas_v[n][i] * dx*dy) )
-
-        plt.errorbar(ts_v[n]/60, np.array(sarm)/100, yerr=np.array(sars)/100,  capsize=2, fmt='.-', errorevery=(l*2,20), \
-                      label=r'$S = $'+str(salis_v[n])+' g/kg' )#, color=(0.5,1-salis_v[n]/35,salis_v[n]/35) )
-
-ax.set_xlabel('time (min)')
-ax.set_ylabel(r'Area (cm$^2$)')
-ax.legend(bbox_to_anchor=(0.5,1.18), loc='upper center' , ncol=3)
-
-# plt.savefig('./Documents/aret.png',dpi=400, bbox_inches='tight', transparent=True)
-plt.show()
-
-fig,ax = plt.subplots()
-li1ys = []
-for n in nss_v:
-    if salis_v[n] > 7 and salis_v[n] < 25: 
-        dx = xns_v[n][0,1] - xns_v[n][0,0]
-        dy = yns_v[n][0,0] - yns_v[n][1,0]
-        
-        sarm,sars = [], []
-        for i in range(len(sscas_v[n])):
-            sarm.append( np.nanmean(sscas_v[n][i] * dx*dy) )
-            sars.append( np.nanstd(sscas_v[n][i] * dx*dy) )
-        
-        # plt.error(ts_v[n]/60, sscas_v[n][i] * dx*dy, '.' )
-        # plt.errorbar(ts_v[n]/60, sarm, yerr=sars, capsize=2, fmt='o-', markersize=5, color=(0.5,1-salis_v[n]/35,salis_v[n]/35) )
-    
-        # li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[-30:])/100, yerr=np.nanmean(sars[-30:])/100, capsize=2, fmt='o', \
-        #               markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
-        li1y = ax.errorbar(salis_v[n], np.nanmean(sarm[30:])/100, fmt='o', markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
-        # li1y = ax.errorbar(salis_v[n], np.nanstd(sarm[-30:])/100, fmt='o', markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
-        li1ys.append(li1y)
-        pass
-
-li2ys = []
-for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-
-    dx = xns_t[n][0,1] - xns_t[n][0,0]
-    dy = yns_t[n][0,0] - yns_t[n][1,0]
-    
-    sarm,sars = [], []
-    for i in range(len(sscas_t[n])):
-        sarm.append( np.nanmean(sscas_t[n][i] * dx*dy) )
-        sars.append( np.nanstd(sscas_t[n][i] * dx*dy) )
-    
-    # plt.error(ts_v[n]/60, sscas_v[n][i] * dx*dy, '.' )
-    # plt.errorbar(ts_v[n]/60, sarm, yerr=sars, capsize=2, fmt='o-', markersize=5, color=(0.5,1-salis_v[n]/35,salis_v[n]/35) )
-
-    # li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[30:])/100, yerr=np.nanmean(sars[30:])/100, capsize=2, fmt='o', \
-    #              markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    # li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[-30:])/100, yerr=np.nanmean(sars[-30:])/100, capsize=2, fmt='o', \
-    #               markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
-    li2y = ax.errorbar(salis_t[n], np.nanmean(sarm[30:])/100, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
-    # li2y = ax.errorbar(salis_t[n], np.nanstd(sarm[-30:])/100, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
-    li2ys.append(li2y)
-
-ax.set_xlabel('Salinity (g/kg)')
-ax.set_ylabel(r'Area (cm$^2$)')
-ax.legend([li1ys[-1],li2ys[-1],li2ys[3],li2ys[1],li2ys[2] ],['Set 1', 'Set 2',r'-$15°$',r'$15°$',r'$30°$'],\
-                   bbox_to_anchor=(0.5,1.12), loc='upper center' , ncol=5 )
-
-# plt.savefig('./Documents/ares.png',dpi=400, bbox_inches='tight', transparent=True)
-plt.show()
-#%%
-#%%
-# amplitud scallops (use minmax probably)        
-
-
-fig,ax = plt.subplots()
-
-for n in [1,10,12]:
-# for n in [0,3,8]:
-    mimam, mimas = [],[]
-    for i in range(len(smms_v[n])):
-        mimam.append( np.nanmean(smms_v[n][i]) )
-        mimas.append( np.nanstd(smms_v[n][i]) )
-        # mimam.append( np.nanmean(ssds_v[n][i]) )
-        # mimas.append( np.nanstd(ssds_v[n][i]) )
-    
-    ax.errorbar(ts_v[n]/60, mimam, yerr=mimas, fmt='o-', capsize=2)
-
-# for n in [8,23]:
-#     mimam, mimas = [],[]
-#     for i in range(len(smms_t[n])):
-#         # mimam.append( np.nanmean(smms_t[n][i]) )
-#         mimam.append( np.nanmean(ssds_t[n][i]) )
-#         # mimas.append( np.nanstd(smms_t[n][i]) )
-#         mimas.append( np.nanstd(ssds_t[n][i]) )
-    
-#     ax.errorbar(ts_t[n]/60, mimam, yerr=mimas, fmt='o-', capsize=2)
-
-ax.set_xlabel('time (min)')
-ax.set_ylabel('Amplitud (mm)')
-ax.set_ylim(bottom=0)
-
-# plt.savefig('./Documents/amp8.png',dpi=400, bbox_inches='tight', transparent=True)
-plt.show()        
-#%%
-ave = 10
-fig,ax = plt.subplots()
-li1s = []
-for n in nss_v:
-    if salis_v[n] > 7 and salis_v[n] < 25:
-        mimam, mimas = [],[]
-        for i in range(len(smms_v[n])):
-            mimam.append( np.nanmean(smms_v[n][i]) )
-            mimas.append( np.nanstd(smms_v[n][i]) )
-        
-        ascm, ascs = np.mean((mimam)[-ave:]), np.mean(mimas[-ave:])
-        li1 = ax.errorbar(salis_v[n], ascm, yerr = ascs, capsize=2, fmt='o', \
-                     markersize=5, color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), mfc='w' )
-        li1s.append(li1)
-    
-li2s = []
-for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
-    mimam, mimas = [],[]
-    for i in range(len(smms_t[n])):
-        mimam.append( np.nanmean(smms_t[n][i]) )
-        mimas.append( np.nanstd(smms_t[n][i]) )
-
-    ascm, ascs = np.mean((mimam)[-ave:]), np.mean(mimas[-ave:])
-    # li2 = ax.errorbar(salis_t[n], ascm, yerr = ascs, capsize=2, fmt='o-', \
-    #              markersize=5, color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70) )
-    li2 = ax.errorbar(salis_t[n], ascm, yerr = ascs, capsize=2, fmt='o', \
-                 markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) ) 
-    li2s.append(li2)
-        
-ax.set_xlabel('Salinity (g/kg)')
-ax.set_ylabel('Amplitud (nm)')
-ax.set_ylim(bottom=0)
-
-ax.legend( [li1s[-1],li2s[-1],li2s[3],li2s[1],li2s[2]],['Set 1', 'Set 2',r'-$15°$',r'$15°$',r'$30°$'],\
-                   bbox_to_anchor=(0.5,1.12), loc='upper center' , ncol=5 )
-
-# plt.savefig('./Documents/amps.png', dpi=400, bbox_inches='tight', transparent=True)
-plt.show()
-
-
-#%%
 
 
 #%%
@@ -4412,7 +3502,7 @@ def density_fig(safi=False):
     plt.text(15, -3, 'T$_{fp}$', color=(.2, .2, .2), fontsize=11)
     plt.text(2, -4, 'Ice', color='k', fontsize=12)
 
-    if safi: plt.savefig('./Documents/densityst.png', dpi=400, bbox_inches='tight', transparent=True)
+    # if safi: plt.savefig('./Documents/densityst.png', dpi=400, bbox_inches='tight', transparent=True)
     plt.show()
 
 
@@ -4441,7 +3531,8 @@ def freezing_temperature(sal):
     return 0.0 - Kf*i*sal/M  # Bagden's law for freezing depression
 
 
-density_fig()
+# density_fig()
+density_millero(0, 0), density_millero(19, 0), density_millero(0, 1)
 
 #%%
 # =============================================================================
@@ -4673,6 +3764,10 @@ for i in tqdm(range(len(halg))):
 
 frame_one = lista_im[0] #lista_im[0]
 frame_one.save("./Documents/ice_s27_t0.gif", format="GIF", append_images=lista_im[1:],save_all=True, duration=5, loop=0)
+#%%
+
+#%%
+
 #%%
 
 
