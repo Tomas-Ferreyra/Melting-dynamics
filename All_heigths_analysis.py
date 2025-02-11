@@ -326,6 +326,23 @@ def colored_line(x, y, c, ax, **lc_kwargs):
 
     return ax.add_collection(lc)
 
+def density_millero(t, s):
+    """
+    Computes density of seawater in kg/m^3.
+    Function taken from Eq. 6 in Sharqawy2010.
+    Valid in the range 0 < t < 40 degC and 0.5 < sal < 43 g/kg.
+    Accuracy: 0.01%
+    """
+    t68 = t / (1 - 2.5e-4)  # inverse of Eq. 4 in Sharqawy2010
+    sp = s / 1.00472  # inverse of Eq. 3 in Sharqawy2010
+
+    rho_0 = 999.842594 + 6.793952e-2 * t68 - 9.095290e-3 * t68 ** 2 + 1.001685e-4 * t68 ** 3 - 1.120083e-6 * t68 ** 4 + 6.536336e-9 * t68 ** 5
+    A = 8.24493e-1 - 4.0899e-3 * t68 + 7.6438e-5 * t68 ** 2 - 8.2467e-7 * t68 ** 3 + 5.3875e-9 * t68 ** 4
+    B = -5.72466e-3 + 1.0227e-4 * t68 - 1.6546e-6 * t68 ** 2
+    C = 4.8314e-4
+    rho_sw = rho_0 + A * sp + B * sp ** (3 / 2) + C * sp ** 2
+    return rho_sw
+
 #%%
 
 sal_v = ['5','15','23','8(1)','0','2','4','6','8(3)','12','14','18','15(2)','22','27','10']
@@ -448,41 +465,75 @@ for n in tqdm(range(len(ds_t))):
     mes_t.append( tmelr )
     sed_t.append( 0 )
 
+drho_rho_v = np.abs( density_millero(0, salis_v) - density_millero(temp_v, salis_v) ) / density_millero(temp_v, salis_v)
+drho_rho_t = np.abs( density_millero(0, salis_t) - density_millero(temp_t, salis_t) ) / density_millero(temp_t, salis_t)
+
+# not sure if I'm calculating R_rho correctly. This values are taken from simen paper
+beta_t, beta_s = 6e-5, 7.8e-4 # 1/K, 1/(g/kg)
+rrho_v = (beta_s * salis_v) / (beta_t * (temp_v + 273.15)) 
+rrho_t = (beta_s * salis_t) / (beta_t * (temp_t + 273.15))
+
+# Nusselt number (with initial length scale )
+rho_ice = 916.8 # kg / m^3
+latent = 334e3 # m^2 / s^2
+length0 = 32 / 100 # m
+thcon = 0.6 # m kg / s^3 °C
+mes_v, mes_t = np.array(mes_v), np.array(mes_t)
+Nu_v = -mes_v/1000 * rho_ice * latent * length0 / (thcon * temp_v )
+Nu_t = -mes_t/1000 * rho_ice * latent * length0 / (thcon * temp_t )
+
 #%%
-pt = 1./72.27
-golden = (1+5**0.5)/2
-width_l = 426. * pt * 3
+save_name = 'melt_rates' # 'melt_rates'
+reference = False
+shadowgraphy = False
+small_ice = True
+axis_x = 'salinity'
+axis_y = 'nu'
 
 cols = np.linspace(-19,51,256)
-comap = np.array( [(cols+19)/70 , 0.5 *np.ones_like(cols) , 1-(cols+19)/79 , 1*np.ones_like(cols) ] )
+comap = np.array( [(cols+19)/70 , 0.5 *np.ones_like(cols) , 1-(cols+19)/70 , 1*np.ones_like(cols) ] )
 comap = comap.T
 newcmp = ListedColormap(comap)
 
-
 fig, ax = plt.subplot_mosaic([[r'$a)$', r'$b)$']], layout='tight', figsize=(12,6), sharey=True)
 
-for n in range(len(ds_v)):
-    ax[r'$a)$'].errorbar(salis_v[n], -mes_v[n] * 1 , yerr=0.0018, fmt='o', label=str(n)+'°', markersize=5, \
-                 color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), capsize=3, mfc='w')
-        
-        
-for n in range(len(ds_t)-4):        
-    ax[r'$a)$'].errorbar(salis_t[n], -mes_t[n] * 1 , yerr=0.0011, fmt='.', label=str(n)+'°', markersize=10, \
-                  color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70), capsize=3)
-for n in range(-4,0):        
-    ax[r'$a)$'].errorbar(salis_t[n], -mes_t[n] * 1 , yerr=0.0011, fmt='d', label=str(n)+'°', markersize=5, \
-                  color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70), capsize=3)
+if axis_x == 'salinity':
+    xvariable_v, xvariable_t = salis_v, salis_t
+    ax[r'$a)$'].set_xlim(-1.65,36.17)
+    ax[r'$a)$'].set_xticks( list(range(0,36,5)) )
+    ax[r'$a)$'].set_xlabel(r'$S$ (g/kg)')
+elif axis_x == 'density':
+    xvariable_v, xvariable_t = drho_rho_v, drho_rho_t
+    ax[r'$a)$'].set_xticks([0.0015, 0.0018, 0.0021, 0.0024, 0.0027, 0.0030])        
+    ax[r'$a)$'].set_xlabel(r'$\Delta \rho / \rho$ (g/kg)')    
+elif axis_x == 'rrho':
+    xvariable_v, xvariable_t = rrho_v, rrho_t
+    ax[r'$a)$'].set_xlabel(r'$R_\rho$ (g/kg)')    
+if axis_y == 'melt rate':
+    yvariable_v, yvariable_t = -mes_v, -mes_t
+    yvarerr_v, yvarerr_t = [0.0018] * len(mes_v), [0.0011] * len(mes_t)
+    ax[r'$a)$'].set_ylabel(r'$\dot{m}$ (mm/s)')
+if axis_y == 'nu':
+    yvariable_v, yvariable_t = Nu_v, Nu_t
+    yvarerr_v, yvarerr_t = 0.0018/1000 * rho_ice * latent * length0 / (thcon * temp_v ), 0.0011/1000 * rho_ice * latent * length0 / (thcon * temp_t )
+    ax[r'$a)$'].set_ylabel(r'Nu')
 
+
+for n in range(len(ds_v)):
+    ax[r'$a)$'].errorbar(xvariable_v[n], yvariable_v[n] * 1 , yerr=yvarerr_v[n], fmt='o', label=str(n)+'°', markersize=5, \
+                 color=((angys_v[n]+19)/70,0.5,1-(angys_v[n]+19)/70), capsize=3, mfc='w')
+for n in range(len(ds_t)-4):        
+    ax[r'$a)$'].errorbar(xvariable_t[n], yvariable_t[n] * 1 , yerr=yvarerr_t[n], fmt='.', label=str(n)+'°', markersize=10, \
+                  color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70), capsize=3)
+if small_ice:
+    for n in range(-4,0):        
+        ax[r'$a)$'].errorbar(xvariable_t[n], yvariable_t[n] * 1 , yerr=yvarerr_t[n], fmt='d', label=str(n)+'°', markersize=5, \
+                      color=((angys_t[n]+19)/70,0.5,1-(angys_t[n]+19)/70), capsize=3)
         
 cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(-19, 51), cmap=newcmp), ax=ax[r'$a)$'], location='top')
 # cbar.ax.tick_params(labelsize=12)
-cbar.set_label( label=r"Angle (°)") #, size=12)
-
-ax[r'$a)$'].set_xlim(-1.65,36.17)
-
-ax[r'$a)$'].set_xlabel(r'Salinity (g/kg)')
-ax[r'$a)$'].set_ylabel(r'Melting rate (mm/s)')
-
+cbar.ax.set_xticks( list(range(-10,51,10)) )
+cbar.set_label( label=r"$\theta$ (°)") #, size=12)
 
 co2 = [(i/35,0,1-i/35) for i in salis]
 
@@ -493,33 +544,37 @@ newcmp = ListedColormap(comap)
 
 
 for n in range(len(ds_t)-4):
-    ax[r'$b)$'].errorbar( angys_t[n],  -mes_t[n], yerr=0.0011 ,fmt='.', markersize=10,  
+    ax[r'$b)$'].errorbar( angys_t[n],  yvariable_t[n], yerr=yvarerr_t[n] ,fmt='.', markersize=10,  
                  color=(0.5,1-salis_t[n]/35,salis_t[n]/35), capsize=3) #label=str(i)+'g/kg', \
 for n in range(-4,0):
-    ax[r'$b)$'].errorbar( angys_t[n],  -mes_t[n], yerr=0.0011 ,fmt='d', markersize=6,  
+    ax[r'$b)$'].errorbar( angys_t[n],  yvariable_t[n], yerr=yvarerr_t[n] ,fmt='d', markersize=6,  
                  color=(0.5,1-salis_t[n]/35,salis_t[n]/35), capsize=3) #label=str(i)+'g/kg', \
 
-# shadowgraphy experiments, they dont say much 
-ax[r'$b)$'].errorbar( [0,30], [0.017391, 0.017927], yerr=[0.000014, 0.000036], fmt='s', color='black' ) # "clear" (not really that clear)
-ax[r'$b)$'].errorbar( [0,30], [0.014225, 0.018498], yerr=[0.000014, 0.000021], fmt='d', color='black' ) # opaque
+if shadowgraphy:
+    # shadowgraphy experiments, they dont say much 
+    ax[r'$b)$'].errorbar( [0,30], [0.017391, 0.017927], yerr=[0.000014, 0.000036], fmt='s', color='black' ) # "clear" (not really that clear)
+    ax[r'$b)$'].errorbar( [0,30], [0.014225, 0.018498], yerr=[0.000014, 0.000021], fmt='d', color='black' ) # opaque
 
 cbar = plt.colorbar( plt.cm.ScalarMappable(norm=Normalize(0, 35), cmap=newcmp), ax=ax[r'$b)$'], location='top')
 # cbar.ax.tick_params(labelsize=12)
-cbar.set_label( label="Salinity (g/kg)") #, size=12)
+cbar.ax.set_xticks( list(range(0,36,5)) )
+cbar.set_label( label=r"$S$ (g/kg)") #, size=12)
 
-th = np.linspace(0,50*np.pi/180,50)
-plt.plot( th*180/np.pi, 0.016 * np.cos(th)**(2/3), 'k--' , label=r'McConnochie & Kerr 2018 ($\propto \cos^{2/3}(\theta)$)')
+if reference:
+    th = np.linspace(0,50*np.pi/180,50)
+    plt.plot( th*180/np.pi, 0.016 * np.cos(th)**(2/3), 'k--' , label=r'McConnochie & Kerr 2018 ($\propto \cos^{2/3}(\theta)$)')
+    ax[r'$b)$'].legend()
 
 
-ax[r'$b)$'].set_xlabel(r'Angle (°)')
+ax[r'$b)$'].set_xlabel(r'$\theta$ (°)')
+ax[r'$b)$'].set_xticks( list(range(-20,51,10)) )
 # ax[r'$b)$'].set_ylabel(r'Melting rate (mm/s)')
-ax[r'$b)$'].legend()
 
 
 # for labels,axs in ax.items():
 #     axs.annotate(labels, (-0.15,1), xycoords = 'axes fraction')
 
-# plt.savefig('./Documents/theo_mr.png',dpi=400, bbox_inches='tight')
+if len(save_name) > 0: plt.savefig('./Documents/Figs morpho draft/'+save_name+'.png',dpi=400, bbox_inches='tight')
 plt.show()
 
 
@@ -2758,10 +2813,12 @@ def barviolin(data, ax, x = [0], height=1.0, width=1.0, bins=20, alpha=0.5, colo
         lefts = x[i] - 0.5 * wid * width
         if len(color) < 1:
             ax.barh( bec, wid * width, hei * height, left = lefts, alpha=alpha )
-            ax.errorbar( x[i], np.mean(daa), yerr=np.std(daa), color='black', capsize=2, fmt='o', markersize=5 )
+            # ax.errorbar( x[i], np.mean(daa), yerr=np.std(daa), color='black', capsize=2, fmt='o', markersize=5 )
+            ax.plot( x[i], np.mean(daa), 'o', color='black', markersize=5 )
         else:
             ax.barh( bec, wid * width, hei * height, left = lefts, alpha=alpha, color=color )
             ax.errorbar( x[i], np.mean(daa), yerr=np.std(daa), color='black', capsize=2, fmt='o', markersize=5 )
+            ax.plot( x[i], np.mean(daa), 'o', color='black', markersize=5 )
 
 
 
@@ -2861,8 +2918,8 @@ for n in ns_v:
     sarms_v.append(sarm)
 
 # plt.figure()
-barviolin( sarms_v, ax[r'$b)$'], x=salis_v[ns_v], bins=12, width=10, color='blue', label='Set 1' )
-barviolin( sarms_t, ax[r'$b)$'], x=salis_t[ns_t], bins=12, width=10, color='red' , label='Set 2')
+barviolin( sarms_v, ax[r'$b)$'], x=salis_v[ns_v], bins=30, width=10, color='blue') #, labe='Set 1' )
+barviolin( sarms_t, ax[r'$b)$'], x=salis_t[ns_t], bins=30, width=10, color='red' ) #, labe='Set 2')
 # plt.xticks(salis_v[ns_v])
 # plt.xticks(salis_t[ns_t])
 ax[r'$b)$'].set_ylim(0,25)
@@ -2997,14 +3054,21 @@ fig, ax = plt.subplot_mosaic([[r'$a)$',r'$b)$']], layout='tight', figsize=(12/1.
 for n in [7,8,15]:
     mimam, mimas = [],[]
     for i in range(len(smms_t[n])):
-        mimam.append( np.nanmean(smms_t[n][i]) )
-        mimas.append( np.nanstd(smms_t[n][i]) )
-        # mimam.append( np.nanmean(smes_t[n][i]) )
-        # mimas.append( np.nanstd(smes_t[n][i]) )
+        # mimam.append( np.nanmean(smms_t[n][i]) )
+        # mimas.append( np.nanstd(smms_t[n][i]) )
+        mimam.append( np.nanmean(smes_t[n][i]) )
+        mimas.append( np.nanstd(smes_t[n][i]) )
         # mimam.append( np.nanmean(ssds_t[n][i]) )
         # mimas.append( np.nanstd(ssds_t[n][i]) )
     
-    ax[r'$a)$'].errorbar(ts_t[n]/60, mimam, yerr=mimas, fmt='o-', capsize=2, label=r'$S = $'+str(salis_t[n])+' g/kg')
+    # ax[r'$a)$'].errorbar(ts_t[n]/60, mimam, yerr=mimas, fmt='o-', capsize=2, label=r'$S = $'+str(salis_t[n])+' g/kg', \
+    #                      color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70) )
+    ax[r'$a)$'].plot(ts_t[n]/60, mimam,'.-', label=r'$S = $'+str(salis_t[n])+' g/kg', \
+                         color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70) )
+        
+    ax[r'$a)$'].fill_between(ts_t[n]/60, (np.array(mimam)-np.array(mimas)/2), (np.array(mimam)+np.array(mimas)/2), \
+                             color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), alpha=0.2 )
+
 
 ax[r'$a)$'].set_xlabel('time (min)')
 ax[r'$a)$'].set_ylabel('Amplitud (mm)')
@@ -3017,10 +3081,10 @@ for n in nss_v:
     if salis_v[n] > 7 and salis_v[n] < 25:
         mimam, mimas = [],[]
         for i in range(len(smms_v[n])):
-            mimam.append( np.nanmean(smms_v[n][i]) )
-            mimas.append( np.nanstd(smms_v[n][i]) )
-            # mimam.append( np.nanmean(smes_v[n][i]) )
-            # mimas.append( np.nanstd(smes_v[n][i]) )
+            # mimam.append( np.nanmean(smms_v[n][i]) )
+            # mimas.append( np.nanstd(smms_v[n][i]) )
+            mimam.append( np.nanmean(smes_v[n][i]) )
+            mimas.append( np.nanstd(smes_v[n][i]) )
             # mimam.append( np.nanmean(ssds_v[n][i]) )
             # mimas.append( np.nanstd(ssds_v[n][i]) )
         
@@ -3033,10 +3097,10 @@ li2s = []
 for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
     mimam, mimas = [],[]
     for i in range(len(smms_t[n])):
-        mimam.append( np.nanmean(smms_t[n][i]) )
-        mimas.append( np.nanstd(smms_t[n][i]) )
-        # mimam.append( np.nanmean(smes_t[n][i]) )
-        # mimas.append( np.nanstd(smes_t[n][i]) )
+        # mimam.append( np.nanmean(smms_t[n][i]) )
+        # mimas.append( np.nanstd(smms_t[n][i]) )
+        mimam.append( np.nanmean(smes_t[n][i]) )
+        mimas.append( np.nanstd(smes_t[n][i]) )
         # mimam.append( np.nanmean(ssds_t[n][i]) )
         # mimas.append( np.nanstd(ssds_t[n][i]) )
 
@@ -3767,7 +3831,73 @@ frame_one.save("./Documents/ice_s27_t0.gif", format="GIF", append_images=lista_i
 #%%
 
 #%%
+# =============================================================================
+# Temperature and salinity
+# =============================================================================
+sal = ['0','0','0','0','6','6','6','6','12','12','12','12','20','20','20','20','27','27','27','27','0','0','6','12','20','35','35','20','12','6',
+       '35','0']
+inc = ['0(3)','30','15(3)','45','45','30','15','0','0','15','45','30','30','45','15','0','0','15','30','45','15(4)','15(5)',
+       '45(2)','0(2)','30(2)','30','n15','n15','n15','n15','n15(2)','n15']
+pos = ['dd','md','mu','uu']
 
+startimes = [23,34,10,33,22,23,14,15,10,12,16,16,14,26,18,15,21,32,36,274, 37,29,27,27,3,27,18,20,13,43,27,13]
+times,temps,ssali= [],[],[]
+for n in tqdm(range(len(sal))):    
+    file = '/Volumes/Ice blocks/s'+sal[n]+'_t'+inc[n]+'/ice_s'+sal[n]+'_t'+inc[n]+'_dd.csv'
+    dats1 = np.genfromtxt(file, delimiter=';', skip_header=1)
+    file = '/Volumes/Ice blocks/s'+sal[n]+'_t'+inc[n]+'/ice_s'+sal[n]+'_t'+inc[n]+'_md.csv'
+    dats2 = np.genfromtxt(file, delimiter=';', skip_header=1)
+    file = '/Volumes/Ice blocks/s'+sal[n]+'_t'+inc[n]+'/ice_s'+sal[n]+'_t'+inc[n]+'_mu.csv'
+    dats3 = np.genfromtxt(file, delimiter=';', skip_header=1)
+    try:
+        file = '/Volumes/Ice blocks/s'+sal[n]+'_t'+inc[n]+'/ice_s'+sal[n]+'_t'+inc[n]+'_uu.csv'
+        dats4 = np.genfromtxt(file, delimiter=';', skip_header=1)
+    except FileNotFoundError:
+        dats4 = dats3
+    # file = '/Volumes/Ice blocks/s'+sal[n]+'_t'+inc[n]+'/ice_s'+sal[n]+'_t'+inc[n]+'_uu.csv'
+    # dats4 = np.genfromtxt(file, delimiter=';', skip_header=1)
+    
+    lt = min(len(dats1),len(dats2),len(dats3),len(dats4))
+    time = ( np.vstack( (dats1[:lt,0],dats2[:lt,0],dats3[:lt,0],dats4[:lt,0]) ) - dats1[startimes[n],0] ) * 100000/60
+    # time = ( np.vstack( (dats1[:lt,0],dats2[:lt,0],dats3[:lt,0],dats4[:lt,0]) ) - dats1[0,0] ) * 100000/60
+    temp = np.vstack( (dats1[:lt,1],dats2[:lt,1],dats3[:lt,1],dats4[:lt,1]) )
+    sali = np.vstack( (dats1[:lt,2],dats2[:lt,2],dats3[:lt,2],dats4[:lt,2]) )
+    
+    times.append(time)
+    temps.append(temp)
+    ssali.append(sali)
+
+#%%
+n = 0
+plt.figure()
+for i in range(4):
+    plt.plot(times[n][i], temps[n][i],'.-',label=pos[i])
+    # plt.plot(np.arange(len(times[n][i])), temps[n][i],'.-',label=pos[i])
+plt.grid()
+plt.legend()
+plt.show()
+
+
+plt.figure()
+for i in range(4):
+    plt.plot(times[n][i], ssali[n][i],'.-',label=pos[i])
+plt.grid()
+plt.legend()
+plt.show()
+
+#%%
+i = 2
+ns = [12,24]
+starttime = [23,34,10,33,22,23,14,15,10,12,16,16,14,26,18,15,21,32,36,274, 37,29,27,27,3,27,18,20,13,43,27,13]
+
+plt.figure()
+for n in ns:
+    # plt.plot(times[n][i] - (times[n][i])[starttime[n]], temps[n][i] - temps[n][i][starttime[n]-2]*1,'.-',label=ang[n])
+    plt.plot(times[n][i] - (times[n][i])[starttime[n]], temps[n][i],'.-',label=ang[n])
+    # plt.plot( temps[n][i],'.-',label=ang[n])
+plt.grid()
+plt.legend()
+plt.show()
 #%%
 
 
