@@ -366,7 +366,6 @@ def barviolin(data, ax, x = [0], height=1.0, width=1.0, bins=20, alpha=0.5, colo
             ax.plot( x[i], np.mean(daa), 'o', color='black', markersize=5 )
 
 #%%
-
 sal_v = ['5','15','23','8(1)','0','2','4','6','8(3)','12','14','18','15(2)','22','27','10']
 
 salis = [8,15.2,23.38,8,0,2.31,4.06,6.40,8.26,12.87,14.8,18.13,15.2,21.9,27.39,10.26]
@@ -392,35 +391,35 @@ temp_v = np.array(temp)
 angys_v = np.array(angys)
 
 sal_t = ['0','0','0','0','6','6','6','6','12','12','12','12','20','20','20','20','27','27','27','27','0','0','6','12','20','35','35','20','12','6',
-       '35','0','6','12','12','20']
+       '35','0', '6','12','12','20',  '1','2','3',]
 inc_t = ['0(3)','30','15(3)','45(2)','45(ng)','30','15','0','0','15','45','30','30','45','15','0','0','15','30','45','15(4)','15(5)',
-       '45(2)','0(2)','30(2)','30','n15','n15','n15','n15','n15(2)','n15','0(s)','0(s)','30(s)','0(s)']
+       '45(2)','0(2)','30(2)','30','n15','n15','n15','n15','n15(2)','n15', '0(s)','0(s)','30(s)','0(s)',  '30','30','30',]
 salis = [0, 0, 0, 0, 6.8, 7.0, 6.8, 6.8, 13.2, 13.3, 13.2, 13.3, 20.1, 20.1, 19.8, 20.0, 26.1, 26.1, 26.2, 26.2, 0, 0, 6.9, 12.9, 20.1,34.5,34.5,19.7, 
-         13.0, 7.0, 34.3, 0, 5.8, 12.3, 12.4, 18.5]
-ang = [0,30,15,45,45,30,15,0,0,15,45,30,30,45,15,0,0,15,30,45,15,15, 45, 0, 30, 30, -15, -15, -15, -15, -15, -15, 0, 0, 30, 0 ]
+         13.0, 7.0, 34.3, 0, 5.8, 12.3, 12.4, 18.5, 1.2,1.8,2.9]
+ang = [0,30,15,45,45,30,15,0,0,15,45,30,30,45,15,0,0,15,30,45,15,15, 45, 0, 30, 30, -15, -15, -15, -15, -15,  0, 0, 30, 0, -15, 30,30,30 ]
 ds_t = [ 0.4019629986999602, 0.4079970860258477, 0.400784094531674, 0.4019866341895751, 0.4140232465732999, 0.4108146995511450, 0.405185916205820,
        0.3985171779558734, 0.4082777044681367, 0.399457458948112, 0.429624677624675, 0.4002974355025642, 0.3962951595980395, 0.4158467162824917,
        0.405560070548485, 0.406690755428839, 0.3986160751319692, 0.406029247234490, 0.403935349493398, 0.4274366684657002, 0.39842940043484637,
        0.3944444940666371, 0.42941247988993125, 0.3986508813811391, 0.41300121024756764, 0.39724780723266606, 0.3991597643255994, 0.4114831458151559,
-       0.4034206887886922, 0.3963784515420281, 0.406148619144839, 0.40500559156677696, 
-       0.4038900423099877, 0.4088590866221042, 0.40465748645946387, 0.4070953514695665]
+       0.4034206887886922, 0.3963784515420281, 0.406148619144839, 0.40500559156677696,  
+       0.4038900423099877, 0.4088590866221042, 0.40465748645946387, 0.4070953514695665, 0.4129039076897664, 0.4030493020902331, 0.39538334537770237]
 
 Ls = [ 2099.9999966941955, 2097.2250082592454, 2100.003821154219, 2098.7729533565816, 2092.3116009701507, 2100.7921001119767, 2102.061867627691,
        2104.0217430207585, 2097.0613260850837, 2108.070882626512, 2101.360857870178, 2106.0608525686807, 2103.8609505143863, 2158.7930487367967,
        2112.093781969593, 2113.181455334151, 2104.4329627701713, 2092.891945129341, 2103.955261899692, 2107.0490635783035, 2100.163205198002,
        2102.2972076507995, 2103.9171613871736, 2099.967887686282, 2110.996676678041, 2099.255549750563, 2098.0517570404286, 2102.9647844012497,
        2101.945064364561, 2100.341294595434, 2103.0141188891594, 2101.2510931269435,
-       2100.01045350225, 2103.588545842329, 2100.408699264378, 2103.0207273047863]
+       2100.01045350225, 2103.588545842329, 2100.408699264378, 2103.0207273047863,  2111.085100071991, 2107.6124628616667, 2100.365882979232]
 
 angys = [0.2752835802019292, 34.47170331852835, 13.06499750709190, 43.6538844493011, 42.63317480202235, 29.31556395720869, 15.64436382383116, 
          0.379506977103330, 2.122818303993659, 16.82489775638404, 47.66715755358717, 28.76640507341181, 31.15486854660724, 50.65480071850850, 
          19.29185570378762, -0.876278847660974, -1.445891941223953, 15.68633111320458, 28.61178195105051, 46.98820258183241, 14.85643305810015,
          18.694159382293858, 44.69885882480372, 0.4091221586816418, 29.57628972829382, 29.370955852274992, -18.732894940242627, -16.522627138169074,
          -16.27828076769843, -17.33545209415416, -16.58142778295442, -17.450360846901734,
-         -1.6926163253504223, -2.671232787825012, 27.052620463266, 5.031218324124902]
+         -1.6926163253504223, -2.671232787825012, 27.052620463266, 5.031218324124902,  29.316888864559527, 29.121527035263778, 28.25041391205312]
 
 temp = [19.0, 19.0, 19.3, 19.7, 20.1, 20.3, 19.5, 20.0, 19.0, 19.0, 19.7, 19.4, 18.8, 19.2, 19.8, 19.5, 19.8, 19.4, 19.1, 20.0, 20.1, 19.4,
-        19.4, 19.3, 19.2, 19.2, 18.7, 19.3, 18.9, 19.0, 19.1, 19.3, 19.2, 19.1, 18.8, 19.3]
+        19.4, 19.3, 19.2, 19.2, 18.7, 19.3, 18.9, 19.0, 19.1, 19.3, 19.2, 19.1, 18.8, 19.3, 19.3,19.0,19.0]
 
 salis_t = np.array(salis)
 ang_t = np.array(ang)
@@ -443,7 +442,7 @@ with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/heigh
         ts_v.append( np.arange(0, (f['n'][n])[0] ) * 30 )
 
 
-with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/sloped_heights(s0)_all.hdf5', 'r') as f:
+with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/sloped_heights(s0)_final.hdf5', 'r') as f:
 
     hints_t, xns_t, yns_t, ts_t = [], [], [], []
     for n in tqdm(range(len(salis_t))):
@@ -531,7 +530,7 @@ thcon = 0.6 # m kg / s^3 °C
 mes_v, mes_t = np.array(mes_v), np.array(mes_t)
 Nu_v = -mes_v/1000 * rho_ice * latent * length0 / (thcon * temp_v )
 Nu_t = -mes_t/1000 * rho_ice * latent * length0 / (thcon * temp_t )
-Nu_t[-4:] = -mes_t[-4:]/1000 * rho_ice * latent * length0_short / (thcon * temp_t[-4:] )
+Nu_t[-7:-3] = -mes_t[-7:-3]/1000 * rho_ice * latent * length0_short / (thcon * temp_t[-7:-3] )
 
 #Rayleigh number
 g = 9.81 #m / s^2
@@ -540,14 +539,14 @@ kt = 1.4e-7 #m^2 / s
 
 Ra_v = g * np.cos(angys_v * np.pi/180) * drho_rho_v * length0**3 / kt / mu 
 Ra_t = g * np.cos(angys_t * np.pi/180) * drho_rho_t * length0**3 / kt / mu 
-Ra_t[-4:] = g * np.cos(angys_t[-4:] * np.pi/180) * drho_rho_t[-4:] * length0**3 / kt / mu 
+Ra_t[-7:-3] = g * np.cos(angys_t[-7:-3] * np.pi/180) * drho_rho_t[-7:-3] * length0**3 / kt / mu 
 
 # beta_s = 7.8e-4 # (g/kg)^-1
 # nu = 1.03e-6 # m^2 / s
 # ks = kt/100 # m^2 / s
 
 #%%
-save_name = '' # 'melt_rates'
+save_name = '' # 'melt_rates', 'nus'
 reference = False
 shadowgraphy = False
 small_ice = True
@@ -589,11 +588,11 @@ if axis_y == 'nu':
 for n in range(len(ds_v)):
     ax[r'$a)$'].errorbar(xvariable_v[n], yvariable_v[n] * 1 , yerr=yvarerr_v[n], fmt='o', label=str(n)+'°', markersize=5, \
                  color=((angys_v[n]+20)/71,0.5,1-(angys_v[n]+20)/71), capsize=3, mfc='w')
-for n in range(len(ds_t)-4):        
+for n in [j for j in range(len(ds_t)) if j not in range(32,36)]:        
     ax[r'$a)$'].errorbar(xvariable_t[n], yvariable_t[n] * 1 , yerr=yvarerr_t[n], fmt='.', label=str(n)+'°', markersize=10, \
                   color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71), capsize=3)
 if small_ice:
-    for n in range(-4,0):        
+    for n in range(-7,-3):        
         ax[r'$a)$'].errorbar(xvariable_t[n], yvariable_t[n] * 1 , yerr=yvarerr_t[n], fmt='d', label=str(n)+'°', markersize=5, \
                       color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71), capsize=3)
         
@@ -610,7 +609,7 @@ comap = comap.T
 newcmp = ListedColormap(comap)
 
 
-for n in range(len(ds_t)-4):
+for n in [j for j in range(len(ds_t)) if j not in range(32,36)]: 
     ax[r'$b)$'].errorbar( angys_t[n],  yvariable_t[n], yerr=yvarerr_t[n] ,fmt='.', markersize=10,  
                  color=(0.5,1-salis_t[n]/35,salis_t[n]/35), capsize=3) #label=str(i)+'g/kg', \
 for n in range(-4,0):
@@ -643,7 +642,6 @@ ax[r'$b)$'].set_xticks( list(range(-20,51,10)) )
 
 if len(save_name) > 0: plt.savefig('./Documents/Figs morpho draft/'+save_name+'.png',dpi=400, bbox_inches='tight')
 plt.show()
-
 
 #%%
 # =============================================================================
@@ -696,6 +694,8 @@ for n,ss in tqdm(enumerate(salis_t)):
 t1 = time()
 mve_v, msd_v = [],[]
 mxe_v, mxd_v = [],[]
+
+
 for i,ss in enumerate(salis_v):
 # for i in [0]:
     ss = salis[i]
@@ -808,7 +808,9 @@ for i,ss in enumerate(salis_v):
 mve_t, msd_t = [],[]
 mxe_t, mxd_t = [],[]
 # for n,ss in enumerate(salis_t):
-for n,j in enumerate([7,6,5,28,23,8,9,15 ]):
+# for n,j in enumerate(range(len(salis_t))):
+# for n,j in enumerate([7,6,5,28,23,8,9,15 ]):
+for n,j in enumerate([5,6,7,8,9,15,23,27,28,32,33,35,38]):
 # for n,ss in enumerate([7,8,15]):
 # for n,ss in enumerate([7,6,5]):
 # for n in [0]:
@@ -930,9 +932,9 @@ mxe_v, mxd_v = np.array(mxe_v), np.array(mxd_v)
 mve_t, msd_t = np.array(mve_t), np.array(msd_t)
 mxe_t, mxd_t = np.array(mxe_t), np.array(mxd_t)
 
-filv = (salis_v > 7) * (salis_v < 25)
+filv = (salis_v > 6) * (salis_v < 25)
 # fil = salis_v<50
-filt = [7,6,5,28,23,8,9,15]
+filt = [5,6,7,8,9,15,23,27,28,32,33,35,38] #[7,6,5,28,23,8,9,15]
 
 cols = np.linspace(-20,51,256)
 comap = np.array( [(cols+20)/71 , 0.5 *np.ones_like(cols) , 1-(cols+20)/71 , 1*np.ones_like(cols) ] )
@@ -943,7 +945,8 @@ fig, ax = plt.subplots()
 
 li1ys = []
 for i,j in enumerate(range(len(ds_v))):
-    if salis_v[j] > 7 and salis_v[j] < 25:
+    # if salis_v[j] > 7 and salis_v[j] < 25:
+    if filv[j]:
         # li1y = ax.errorbar(salis_v[j], mve_v[j], yerr=msd_v[j], fmt='o', capsize=2, \
         #               color=((angys_v[j]+20)/71,0.5,1-(angys_v[j]+20)/71), markersize=5, mfc='w')
         li1y = ax.errorbar(salis_v[j], mve_v[j], yerr=0.097, fmt='o', capsize=2, \
@@ -1110,6 +1113,7 @@ plt.show()
 # =============================================================================
 Kerr_angle = [0,20,20,30,30,30,34.2,34.2,34.2,39.5,39.5,39.5] 
 Kerr_sal = [35.9,35.7,35.7,35.9,35.5,35.3,35.1,35.6,35.7,36.4,35.4,35.3] 
+# poner de forma distinta los experimentos que muestran scallops? Y canales?
  
 
 # fig, ax = plt.subplot_mosaic([[r'$a)$']], layout='tight', figsize=(12,5) , sharex=False)
@@ -1120,8 +1124,38 @@ plt.plot( salis_t[-4:], angys_t[-4:], 'd', color='#3B719F' )
 plt.plot( Kerr_sal, Kerr_angle, 'o' , color='#ba3c3c' )
 plt.xlabel(r'$S$ (g/kg)')
 plt.ylabel(r'$\theta$ (°)')
-# plt.savefig('./Documents/Figs morpho draft/experiments.png',dpi=400, bbox_inches='tight', transparent=True)
+# plt.savefig('./Documents/Figs morpho draft/experiments.png',dpi=400, bbox_inches='tight', transparent=False)
 plt.show()
+
+#%%
+
+shape_t = [0,2,0,2,3,1,1,1,1,1,3,3,3,3,0,1,0,2,3,3,2,2,3,1,3,3,0,1,1,0,0,0,1,1,3,1,2,2,1]
+marker_t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0]
+shape_v = [1,1,1,1,0,0,0,1,1,1,1,1,1,1,0,1] 
+
+# dictco = {0:(0,0,1), 1:(1,0,0), 2:(0,1,0), 3:(0.5,0.5,0.5)}
+dictco = {0:(0.5,0.5,0.5), 1:'#3B719F', 2:'#6aa84f', 3:'#ba3c3c'}
+dictma = {0:'o',1:'d'}
+
+cols_v = [dictco[j] for j in shape_v]
+mars_t = [dictma[j] for j in marker_t]
+cols_t = [dictco[j] for j in shape_t]
+
+plt.figure()
+plt.scatter( np.roll(salis_t,3)[:-4], np.roll(angys_t,3)[:-4], c=np.roll(cols_t,3,axis=0)[:-4], marker='o' )
+# plt.scatter( np.roll(salis_t,0)[:], np.roll(angys_t,0)[:], c=np.roll(cols_t,0)[:], marker='o' )
+plt.scatter(salis_t[-7:-3], angys_t[-7:-3], c=cols_t[-7:-3], marker='d' )
+plt.scatter(salis_v, angys_v, marker='o',  facecolors='none', edgecolors=cols_v )
+plt.xlabel(r'$S$ (g/kg)')
+plt.ylabel(r'$\theta$ (°)')
+# plt.savefig('./Documents/Figs morpho draft/morphologs.png',dpi=400, bbox_inches='tight', transparent=False)
+plt.show()
+
+#%%
+
+a = [0,1,2,3,4,5,6,7,8]
+
+np.roll(a,3,)
 
 #%%
 # =============================================================================
@@ -1458,26 +1492,16 @@ for l,n in enumerate(nss_v):
     if salis_v[l] > 7 and salis_v[l] < 25: 
         mly, mlx, mld = [], [], []
         sly, slx, sld = [], [], []
-        for i in range(len(lxs_v[l])):
-            mlx.append(np.nanmean(lxs_v[l][i]) * dx)
-            mly.append(np.nanmean(lys_v[l][i]) * dy)
-            # mld.append(np.nanmean( (lys_v[l][i] * dy) / (lxs_v[l][i] * dx) ))
-            # mlx.append(np.nanmedian(lxs_v[l][i]) * dx)
-            # mly.append(np.nanmedian(lys_v[l][i]) * dy)
-            slx.append(np.nanstd(lxs_v[l][i]) * dx)
-            sly.append(np.nanstd(lys_v[l][i]) * dy)
-            # sld.append(np.nanstd( (lys_v[l][i] * dy) / (lxs_v[l][i] * dx) ))
-            
-        indy, indx = np.argmin(mly[mtim:]), np.argmin(mlx[mtim:])
+        for i in range(mtim,0):
+            mlx += list(lxs_v[l][i] * dx )
+            mly += list(lys_v[l][i] * dy )
 
-        if spread: mey, eey = np.nanmean(mly[mtim:]), np.nanmean(sly[mtim:]) 
-        else: mey, eey = np.nanmean(mly[mtim:]), np.nanstd(mly[mtim:])  
+        mey, eey = np.nanmean(mly), np.nanstd(mly) 
         li1y = ax[r'$b)$'].errorbar(salis_v[l], mey, yerr=eey, capsize=2, fmt='o', markersize=5, \
                              color=((angys_v[l]+20)/71,0.5,1-(angys_v[l]+20)/71), mfc='w'  )        
         li1ys.append(li1y)
 
-        mex, eex = np.nanmean(mlx[mtim:]), np.nanstd(mlx[mtim:])  
-        # mex, eex = np.nanmean(mlx[mtim:]), np.nanmean(slx[mtim:]) 
+        mex, eex = np.nanmean(mlx), np.nanstd(mlx) 
         li1x = ax[r'$c)$'].errorbar(salis_v[l], mex, yerr=eex, capsize=2, fmt='o', markersize=5, \
                              color=((angys_v[l]+20)/71,0.5,1-(angys_v[l]+20)/71), mfc='w'  )        
         li1xs.append(li1x)
@@ -1489,30 +1513,21 @@ for l,n in enumerate([7,6,5,28,23,8,9,15 ]):
 
     mly, mlx, mld = [], [], []
     sly, slx, sld = [], [], []
-    for i in range(len(lxs_t[n])):
-        mlx.append(np.nanmean(lxs_t[n][i]) * dx)
-        mly.append(np.nanmean(lys_t[n][i]) * dy)
-        # mld.append(np.nanmean( (lys_t[n][i] * dy) / (lxs_t[n][i] * dx) ))
-    
-        slx.append(np.nanstd(lxs_t[n][i]) * dx)
-        sly.append(np.nanstd(lys_t[n][i]) * dy)
-        # sld.append(np.nanstd( (lys_t[n][i] * dy) / (lxs_t[n][i] * dx) ))
-        
-    indy, indx = np.argmin(mly[mtim:]), np.argmin(mlx[mtim:])
+    for i in range(mtim,0):
+        mlx += list(lxs_v[l][i] * dx )
+        mly += list(lys_v[l][i] * dy )
 
-    if spread: mey, eey = np.nanmean(mly[mtim:]), np.nanmean(sly[mtim:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
-    else: mey, eey = np.nanmean(mly[mtim:]), np.nanstd(mly[mtim:])  #np.sqrt(np.sum(np.array(sly[30:])**2)) #/ len(sly)
+    mey, eey = np.nanmean(mly), np.nanstd(mly)  
     li2y = ax[r'$b)$'].errorbar(salis_t[n], mey, yerr=eey, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
     li2ys.append(li2y)
 
-    mex, eex = np.nanmean(mlx[mtim:]), np.nanstd(mlx[mtim:]) 
-    # mex, eex = np.nanmean(mlx[mtim:]), np.nanmean(slx[mtim:])
+    mex, eex = np.nanmean(mlx), np.nanstd(mlx)  
     li2x = ax[r'$c)$'].errorbar(salis_t[n], mex, yerr=eex, capsize=2, fmt='o', markersize=5, color=((angys_t[n]+17)/47,0.5,1-(angys_t[n]+17)/47) )
     li2xs.append(li2x)
 
 
-ax[r'$b)$'].set_ylim(19,43)
-ax[r'$c)$'].set_ylim(19,43)
+ax[r'$b)$'].set_ylim(10.2,48)
+ax[r'$c)$'].set_ylim(10.2,48)
 ax[r'$b)$'].sharex(ax[r'$c)$'])
 ax[r'$b)$'].tick_params(axis='x',length=3,labelsize=0)
 
@@ -1535,6 +1550,29 @@ for labels,axs in ax.items():
 # plt.savefig('./Documents/Figs morpho draft/wavelengths.png',dpi=400, bbox_inches='tight', transparent=False)
 plt.show()
 
+#%%
+def barviolin(data, ax, x = [0], height=1.0, width=1.0, bins=20, alpha=0.5, color=[] ):
+    """
+    data: list of data for histogram
+    x: list of len(data). horizontal position of the data 
+    height: float 0-1. Percentage of the height of the bar (1 full bar, 0 no bar)
+    width: float. Width of the bar 
+    """
+    nda = len(data)
+    for i in range(nda):
+        daa = data[i]
+        wid,bed = np.histogram(daa, bins=bins, density=True)
+        bec, hei = (bed[1:] + bed[:-1])/2, bed[1:] - bed[:-1]
+        lefts = x[i] - 0.5 * wid * width
+        if len(color) < 1:
+            ax.barh( bec, wid * width, hei * height, left = lefts, alpha=alpha )
+            # ax.errorbar( x[i], np.mean(daa), yerr=np.std(daa), color='black', capsize=2, fmt='o', markersize=5 )
+            ax.plot( x[i], np.mean(daa), 'o', color='black', markersize=5 )
+        else:
+            ax.barh( bec, wid * width, hei * height, left = lefts, alpha=alpha, color=color )
+            # ax.errorbar( x[i], np.mean(daa), yerr=np.std(daa), color='black', capsize=2, fmt='o', markersize=5 )
+            ax.plot( x[i], np.mean(daa), 'o', color='black', markersize=5 )
+            
 #%%
 # =============================================================================
 # Graph Area
@@ -1560,8 +1598,8 @@ for l,n in enumerate([7,8,15]):
         ax[r'$a)$'].fill_between(ts_t[n]/60, (np.array(sarm)-np.array(sars)/2)/100, (np.array(sarm)+np.array(sars)/2)/100, \
                                  color=np.array([0.5,salis_t[n]/26.2,1-salis_t[n]/26.2]) * (1 - (ang_t[n])/70 ), alpha=0.2 )
 
-ax[r'$a)$'].set_xlabel('Time (min)')
-ax[r'$a)$'].set_ylabel(r'Area (cm$^2$)')
+ax[r'$a)$'].set_xlabel('$t$ (min)')
+ax[r'$a)$'].set_ylabel(r'$A_{scallop}$ (cm$^2$)')
 # ax[r'$a)$'].legend(bbox_to_anchor=(0.5,1.15), loc='upper center' , ncol=3, columnspacing=0.5)
 ax[r'$a)$'].legend(loc='upper right')
 
@@ -1637,8 +1675,8 @@ barviolin( sarms_t, ax[r'$b)$'], x=salis_t[ns_t], bins=30, width=10, color='red'
 # plt.xticks(salis_t[ns_t])
 ax[r'$b)$'].set_ylim(0,25)
 ax[r'$b)$'].set_xlim(6,24.5)
-ax[r'$b)$'].set_xlabel('Salinity (g/kg)')
-ax[r'$b)$'].set_ylabel(r'Area (cm$^2$)')
+ax[r'$b)$'].set_xlabel(r'$S$ (g/kg)')
+ax[r'$b)$'].set_ylabel(r'$A_{scallop}$ (cm$^2$)')
     
 for labels,axs in ax.items():
     axs.annotate(labels, (-0.13,0.96), xycoords = 'axes fraction', **{'fontname':'Times New Roman'})
