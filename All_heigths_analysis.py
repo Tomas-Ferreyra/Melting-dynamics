@@ -11,9 +11,9 @@ import numpy.ma as ma
 
 # from scipy import signal
 from scipy.optimize import curve_fit, least_squares
-from scipy.signal import find_peaks, correlate, fftconvolve, peak_prominences, correlate2d, peak_prominences, savgol_filter
+from scipy.signal import find_peaks, correlate, fftconvolve, peak_prominences, correlate2d, peak_prominences, savgol_filter, convolve, convolve2d
 import scipy.ndimage as snd # from scipy.ndimage import rotate from scipy.ndimage import convolve
-from scipy.stats import linregress
+from scipy.stats import linregress, skew, kurtosis
 from scipy.interpolate import make_interp_spline, Rbf, griddata, splrep, splev
 from scipy.ndimage import maximum_filter
 
@@ -456,29 +456,33 @@ with h5py.File('/Users/tomasferreyrahauchar/Documents/Height profiles/npys/slope
         
 orderpol = 4 #order 4 seems bettter for wtershed. Order 2 gives slightly better results for tracking maxima
 
-difs_v = []
+difs_v, coeffs_v = [], []
 for n in tqdm(range(len(salis_v))):
-    difes = []
+    difes, coeffs = [], []
     for i in (range(len(ts_v[n]))):
         coeff, r, rank, s = polyfitn(n,i,hints_v,xns_v,yns_v, order=orderpol)
         cuapla = poln(coeff,xns_v[n],yns_v[n], order=orderpol) 
         
         difes.append( (hints_v[n][i]-cuapla) )
+        coeffs.append(coeff)
 
     difes = np.array(difes)
     difs_v.append(difes)
+    coeffs_v.append(np.array(coeffs))
 
-difs_t = []
+difs_t, coeffs_t = [], []
 for n in tqdm(range(len(salis_t))):
-    difes = []
+    difes, coeffs = [], []
     for i in (range(len(ts_t[n]))):
         coeff, r, rank, s = polyfitn(n,i,hints_t,xns_t,yns_t, order=orderpol)
         cuapla = poln(coeff,xns_t[n],yns_t[n], order=orderpol) 
         
         difes.append( (hints_t[n][i]-cuapla) )
+        coeffs.append(coeff)
 
     difes = np.array(difes)
     difs_t.append(difes)
+    coeffs_t.append(np.array(coeffs))
 
 #%%
 # =============================================================================
@@ -1330,7 +1334,8 @@ marker_t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 shape_v = [1,1,1,1,0,0,0,1,1,1,1,1,1,1,0,1] 
 
 # dictco = {0:(0,0,1), 1:(1,0,0), 2:(0,1,0), 3:(0.5,0.5,0.5)}
-dictco = {0:(0.5,0.5,0.5), 1:'#3B719F', 2:'#6aa84f', 3:'#ba3c3c'}
+# dictco = {0:(0.5,0.5,0.5), 1:'#3B719F', 2:'#6aa84f', 3:'#ba3c3c'}
+dictco = {0:'magenta', 1:'blue', 2:'green', 3:'orange'}
 dictma = {0:'o',1:'d'}
 
 cols_v = [dictco[j] for j in shape_v]
@@ -3314,5 +3319,741 @@ plt.ylabel(r'$\theta$ (°)')
 plt.show()
 
 #%%
+save_name = '' # 'melt_rates', 'nus'
+reference = False
+shadowgraphy = False
+small_ice = True
+axis_x = 'salinity'
+axis_y = 'nu'
+
+shape_t = [0,2,0,2,3,1,1,1,1,1,3,3,3,3,0,1,0,2,3,3,2,2,3,1,3,3,0,1,1,0,0,0,1,1,3,1,2,2,1]
+marker_t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0]
+shape_v = [1,1,1,1,0,0,0,1,1,1,1,1,1,1,0,1] 
+
+# dictco = {0:(0,0,1), 1:(1,0,0), 2:(0,1,0), 3:(0.5,0.5,0.5)}
+dictco = {0:(0.5,0.5,0.5), 1:'#3B719F', 2:'#6aa84f', 3:'#ba3c3c'}
+dictma = {0:'o',1:'d'}
+
+cols_v = [dictco[j] for j in shape_v]
+mars_t = [dictma[j] for j in marker_t]
+cols_t = [dictco[j] for j in shape_t]
+
+fig, ax = plt.subplot_mosaic([[r'$a)$', r'$b)$']], layout='tight', figsize=(12,5), sharey=True)
+
+if axis_x == 'salinity':
+    xvariable_v, xvariable_t = salis_v, salis_t
+    ax[r'$a)$'].set_xlim(-1.65,36.17)
+    ax[r'$a)$'].set_xticks( list(range(0,36,5)) )
+    ax[r'$a)$'].set_xlabel(r'$S$ (g/kg)')
+elif axis_x == 'density':
+    xvariable_v, xvariable_t = drho_rho_v, drho_rho_t
+    ax[r'$a)$'].set_xticks([0.0015, 0.0018, 0.0021, 0.0024, 0.0027, 0.0030])        
+    ax[r'$a)$'].set_xlabel(r'$\Delta \rho / \rho$ (g/kg)')    
+elif axis_x == 'rrho':
+    xvariable_v, xvariable_t = rrho_v, rrho_t
+    ax[r'$a)$'].set_xlabel(r'$R_\rho$ (g/kg)')    
+elif axis_x == 'ra':
+    xvariable_v, xvariable_t = Ra_v, Ra_t
+    ax[r'$a)$'].set_xlabel(r'Ra')
+if axis_y == 'melt rate':
+    yvariable_v, yvariable_t = -mes_v, -mes_t
+    yvarerr_v, yvarerr_t = [0.0018] * len(mes_v), [0.0011] * len(mes_t)
+    ax[r'$a)$'].set_ylabel(r'$\dot{m}$ (mm/s)')
+if axis_y == 'nu':
+    yvariable_v, yvariable_t = Nu_v, Nu_t
+    yvarerr_v, yvarerr_t = 0.0018/1000 * rho_ice * latent * length0 / (thcon * temp_v ), 0.0011/1000 * rho_ice * latent * length0 / (thcon * temp_t )
+    ax[r'$a)$'].set_ylabel(r'Nu')
+
+
+for n in range(len(ds_v)):
+    ax[r'$a)$'].errorbar(xvariable_v[n], yvariable_v[n] * 1 , yerr=yvarerr_v[n], fmt='o', label=str(n)+'°', markersize=5, \
+                 color=cols_v[n], capsize=3, mfc='w')
+for n in [j for j in range(len(ds_t)) if j not in range(32,36)]:        
+    ax[r'$a)$'].errorbar(xvariable_t[n], yvariable_t[n] * 1 , yerr=yvarerr_t[n], fmt='.', label=str(n)+'°', markersize=10, \
+                  color=cols_t[n], capsize=3)
+if small_ice:
+    for n in range(-7,-3):        
+        ax[r'$a)$'].errorbar(xvariable_t[n], yvariable_t[n] * 1 , yerr=yvarerr_t[n], fmt='d', label=str(n)+'°', markersize=5, \
+                      color=cols_t[n], capsize=3)
+        
+
+
+for n in [j for j in range(len(ds_t)) if j not in range(32,36)]: 
+    ax[r'$b)$'].errorbar( angys_t[n],  yvariable_t[n], yerr=yvarerr_t[n] ,fmt='.', markersize=10,  
+                 color=cols_t[n], capsize=3) #label=str(i)+'g/kg', \
+for n in range(-7,-3):
+    ax[r'$b)$'].errorbar( angys_t[n],  yvariable_t[n], yerr=yvarerr_t[n] ,fmt='d', markersize=6,  
+                 color=cols_t[n], capsize=3) #label=str(i)+'g/kg', \
+
+if shadowgraphy:
+    # shadowgraphy experiments, they dont say much 
+    ax[r'$b)$'].errorbar( [0,30], [0.017391, 0.017927], yerr=[0.000014, 0.000036], fmt='s', color='black' ) # "clear" (not really that clear)
+    ax[r'$b)$'].errorbar( [0,30], [0.014225, 0.018498], yerr=[0.000014, 0.000021], fmt='d', color='black' ) # opaque
+
+if reference:
+    th = np.linspace(0,50*np.pi/180,50)
+    plt.plot( th*180/np.pi, 0.016 * np.cos(th)**(2/3), 'k--' , label=r'McConnochie & Kerr 2018 ($\propto \cos^{2/3}(\theta)$)')
+    ax[r'$b)$'].legend()
+
+
+ax[r'$b)$'].set_xlabel(r'$\theta$ (°)')
+ax[r'$b)$'].set_xticks( list(range(-20,51,10)) )
+# ax[r'$b)$'].set_ylabel(r'Melting rate (mm/s)')
+
+
+# for labels,axs in ax.items():
+#     axs.annotate(labels, (-0.15,1), xycoords = 'axes fraction')
+
+if len(save_name) > 0: plt.savefig('./Documents/Figs morpho draft/'+save_name+'.png',dpi=400, bbox_inches='tight')
+plt.show()
+#%%
+
+
+n = 27 #8 #15 #23
+i = -10
+
+cuv = True
+exp = 't'
+if exp == 'v':
+    hints_b = hints_v
+    wtssal_b = wtssal_v
+    xns_b, yns_b = xns_v, yns_v
+    difs_b = difs_v
+    labs_b, sscas_b = labs_v, sscas_v
+elif exp == 't': 
+    hints_b = hints_t
+    wtssal_b = wtssal_t
+    xns_b, yns_b = xns_t, yns_t
+    difs_b = difs_t
+    labs_b, sscas_b = labs_t, sscas_t
+
+numim = 3
+if cuv:
+    halg = nangauss(hints_b[n],5)
+    gt,gy,gx = np.gradient( halg , np.arange(len(hints_b[n]))*0.5, yns_b[n][:,0], xns_b[n][0])
+    _,gyy,gyx = np.gradient( gy , np.arange(len(hints_b[n]))*0.5, yns_b[n][:,0], xns_b[n][0])
+    _,gxy,gxx = np.gradient( gx , np.arange(len(hints_b[n]))*0.5, yns_b[n][:,0], xns_b[n][0])
+    kurv = ( (1 + gyy**2)*gxx + (1+gxx**2)*gyy - 2*gx*gy*gxy) / (1+gx**2+gy**2)**(3/2) 
+    numim = 4
+
+sobb = thin(sobel(wtssal_b[n][i]) > 0)
+soy,sox = np.where(sobb)
+
+# minx,maxx = np.min( xns_b[n] ), np.max( xns_b[n] )
+# miny,maxy = np.min( yns_b[n] ), np.max( yns_b[n] )
+# dx = xns_b[n][0,1] - xns_b[n][0,0]
+# dy = yns_b[n][0,0] - yns_b[n][1,0]
+
+plt.figure()
+plt.imshow(difs_b[n][i] ) #, extent=(minx,maxx,miny,maxy))
+plt.plot( sox, soy, 'k.', markersize=1 ) # xns_b[n][0,:][sox], yns_b[n][:,0][soy], 'k.', markersize=1)
+plt.show()
+
+plt.figure()
+plt.imshow(difs_b[n][i] ) #, extent=(minx,maxx,miny,maxy))
+plt.plot( sox, soy, 'k.', markersize=1 ) # xns_b[n][0,:][sox], yns_b[n][:,0][soy], 'k.', markersize=1)
+mask = np.zeros_like(wtssal_b[n][i])
+for j in range(len(labs_b[n][i])):
+    mask += wtssal_b[n][i] == labs_b[n][i][j]
+mask += np.isnan(difs_b[n][i])
+amask = np.ma.masked_where(mask, mask)
+plt.imshow( amask, alpha = 0.5 ) # extent=(minx,maxx,miny,maxy), 
+
+plt.show()
+
+
+plt.figure()
+plt.imshow(kurv[i])
+plt.show()
+
+# # plt.figure()
+# # plt.imshow(halg[i])
+# # plt.show()
+# plt.figure()
+# plt.imshow(difs_b[n][i])
+# plt.show()
+#%%
+n = -1 #8 #15 #23
+i = -20
+
+plt.figure()
+plt.imshow(kurv_t[n][i])
+plt.show()
+
+filsat = frangi(kurv_t[n][i])
+nfisa = filsat / np.nanmax(filsat)
+
+plt.figure()
+plt.imshow( nfisa  )
+plt.colorbar()
+plt.show()
+
+
+plt.figure()
+plt.hist( nfisa[nfisa>-1] , bins=50 )
+plt.show()
+plt.figure()
+plt.hist( nfisa[nfisa>0] , bins=50 )
+plt.show()
+
+kurtosis( nfisa[nfisa>0] ), kurtosis( nfisa[nfisa>-1] )
+
+#%%
+i = -10
+
+rat_ars_v = []
+for n in range(len(ds_v)):
+    dx = xns_v[n][0,1] - xns_v[n][0,0]
+    dy = yns_v[n][0,0] - yns_v[n][1,0]
+    rat_ars_v.append( np.sum(sscas_v[n][i]) * dx*dy / totars_v[n][i] )
+
+plt.figure()
+plt.scatter(salis_v, rat_ars_v, c=cols_v)
+plt.grid()
+plt.show()
+#%%
+
+i = -10
+
+rat_ars_t, amp_t = [], []
+for n in range(len(ds_t)):
+    dx = xns_t[n][0,1] - xns_t[n][0,0]
+    dy = yns_t[n][0,0] - yns_t[n][1,0]
+    rat_ars_t.append( np.sum(sscas_t[n][i]) * dx*dy / totars_t[n][i] )
+    # amp_t.append(  np.nanstd(smes_t[n][i])  )
+    # amp_t.append(  np.nanstd(ssds_t[n][i])  )
+    
+    filsat = frangi(kurv_t[n][i])
+    nfisa = filsat / np.nanmax(filsat)
+    
+    amp_t.append(  kurtosis( nfisa[nfisa>-1] ) )
+
+
+plt.figure()
+# plt.scatter(salis_t, rat_ars_t, c=cols_t)
+plt.scatter(salis_t, amp_t, c=cols_t)
+# plt.scatter(rat_ars_t, amp_t, c=cols_t)
+# plt.plot(rat_ars_t,'.')
+plt.grid()
+plt.show()
+
+#%%
+
+n = 0
+
+t,x,y = ts_t[n], xns_t[n][0], yns_t[n][:,0]
+gt,gy,gx = np.gradient(hints_t[n], t,y,x)
+xs,ys = xns_t[n], yns_t[n]
+
+area = np.trapz( np.trapz(~np.isnan(hints_t[n]) * 1.0, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
+
+gt[np.isnan(gt)] = 0.0
+# meltr = np.trapz( np.trapz( gt, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
+# tmelr = np.trapz( meltr / area, x=t ) / t[-1]
+tmel = np.trapz( gt, x=t, axis=0 ) / t[-1]
+tmel[np.isnan(gy[-1])] = np.nan
+
+plt.figure()
+plt.imshow( - tmel )
+plt.colorbar()
+plt.show()
+
+plt.figure()
+# plt.plot( -tmel[300,:] )
+# plt.plot( np.gradient( -np.nanmean(tmel,axis=0) ) )
+plt.plot( -np.nanmean(tmel,axis=0) ) 
+plt.plot( -np.nanmean(tmel,axis=1) ) 
+plt.show()
+
+# fil = np.where(~np.isnan(np.nanmean(tmel,axis=0)))
+# plt.figure()
+# # plt.plot( -tmel[300,:] )
+# # plt.plot( np.gradient( -np.nanmean(tmel,axis=0) ) )
+# plt.plot( np.gradient(-np.nanmean(tmel,axis=0)[fil]), '.' )
+# # plt.yscale('log')
+# plt.show()
+#%%
+
+n = 2
+
+t,x,y = ts_v[n], xns_v[n][0], yns_v[n][:,0]
+gt,gy,gx = np.gradient(hints_v[n], t,y,x)
+xs,ys = xns_v[n], yns_v[n]
+
+area = np.trapz( np.trapz(~np.isnan(hints_v[n]) * 1.0, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
+
+gt[np.isnan(gt)] = 0.0
+# meltr = np.trapz( np.trapz( gt, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
+# tmelr = np.trapz( meltr / area, x=t ) / t[-1]
+tmel = np.trapz( gt, x=t, axis=0 ) / t[-1]
+tmel[np.isnan(gy[-3])] = np.nan
+
+plt.figure()
+plt.imshow( - tmel )
+plt.colorbar()
+plt.show()
+
+#%%
+sdml = []
+for n in tqdm(range(len(ds_v))):
+    t,x,y = ts_v[n], xns_v[n][0], yns_v[n][:,0]
+    gt,gy,gx = np.gradient(hints_v[n], t,y,x)
+    xs,ys = xns_v[n], yns_v[n]
+
+    area = np.trapz( np.trapz(~np.isnan(hints_v[n]) * 1.0, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
+
+    gt[np.isnan(gt)] = 0.0
+    # meltr = np.trapz( np.trapz( gt, x=xs[0,:], axis=2), x=-ys[:,0], axis=1)
+    # tmelr = np.trapz( meltr / area, x=t ) / t[-1]
+    tmel = np.trapz( gt, x=t, axis=0 ) / t[-1]
+    tmel[np.isnan(gy[-3])] = np.nan
+    sdml.append( np.nanstd(tmel) )
+
+
+plt.figure()
+plt.plot(salis_v, sdml,'.')
+plt.show()
+
+#%%
+
+rat_ars_t = []
+sadf = []
+# for n in [0,1,2,3,4,10]:
+for n in range(len(ds_t)):
+    t,x,y = ts_t[n], xns_t[n][0], yns_t[n][:,0]
+    gt,gy,gx = np.gradient(hints_t[n], t,y,x)
+    xs,ys = xns_t[n], yns_t[n]
+    gt[np.isnan(gt)] = 0.0
+    tmel = np.trapz( gt, x=t, axis=0 ) / t[-1]
+    tmel[np.isnan(gy[-1])] = np.nan
+    
+    sadf.append( np.nanstd(-np.nanmean(tmel,axis=0)) )
+    
+    dx = xns_t[n][0,1] - xns_t[n][0,0]
+    dy = yns_t[n][0,0] - yns_t[n][1,0]
+    rat_ars_t.append( np.sum(sscas_t[n][i]) * dx*dy / totars_t[n][i] )
+
+
+
+plt.figure()
+# plt.plot([0,1,2,3,4,10], sadf,'.')
+plt.plot(rat_ars_t, sadf,'.')
+plt.show()
+
+
+
+
+#%%
+
+n = 0
+i = 60
+
+exp = 'v'
+if exp == 'v':
+    hints_b, difs_b, coeffs_b = hints_v, difs_v, coeffs_v
+    xns_b, yns_b = xns_v, yns_v
+elif exp == 't': 
+    hints_b, difs_b, coeffs_b = hints_t, difs_t, coeffs_t
+    xns_b, yns_b = xns_t, yns_t
+
+plt.figure()
+plt.imshow( hints_b[n][i] ) 
+plt.show()
+
+dife = np.copy( hints_b[n][i] )
+dife[np.isnan(dife)] = 0
+
+ny,nx = np.shape(dife)
+kx,ky = np.fft.fftfreq(nx), np.fft.fftfreq(ny)
+kxg,kyg = np.meshgrid(kx,ky) 
+
+ftx = np.abs( np.fft.fft(dife,axis=1) )**2
+lx = np.trapz(ftx[:,1:int(nx/2)] / kxg[:,1:int(nx/2)], x=kx[1:int(nx/2)], axis=1) * np.pi/2 / ((nx-1)/2)**2
+
+fty = np.abs( np.fft.fft(dife,axis=0) )**2
+ly = np.trapz(fty[1:int(ny/2)] / kyg[1:int(ny/2)], x=ky[1:int(ny/2)], axis=0) * np.pi/2 / ((ny-1)/2)**2
+
+plt.figure()
+plt.imshow( np.log(fty) )
+# plt.yscale('log') 
+plt.show()
+
+# lx,ly
+print(np.mean([i for i in ly if i != 0.]), np.median([i for i in ly if i != 0.]))
+print(np.mean([i for i in lx if i != 0.]), np.median([i for i in lx if i != 0.]))
+# coeffs_b[n][i]
+
+#%%
+
+
+n = 8
+i = 60
+
+exp = 'v'
+if exp == 'v':
+    hints_b, difs_b, coeffs_b = hints_v, difs_v, coeffs_v
+    xns_b, yns_b = xns_v, yns_v
+elif exp == 't': 
+    hints_b, difs_b, coeffs_b = hints_t, difs_t, coeffs_t
+    xns_b, yns_b = xns_t, yns_t
+
+plt.figure()
+plt.imshow( hints_b[n][i] ) 
+plt.show()
+
+dife = np.copy( hints_b[n][i] )
+dife -= np.nanmean( hints_b[n][i] )
+dife[np.isnan(dife)] = 0
+
+ny,nx = np.shape(dife)
+
+# for i in range(-int(ny/2),int(ny/2)):
+#     conv = dife * np.roll(dife,i,axis=0)
+# conv = fftconvolve(dife, dife[::-1,:], mode='valid',axes=0)
+# conv = fftconvolve(hints_b[n][i], hints_b[n][i][::-1,:], mode='valid',axes=0)
+
+pdfl = np.pad( dife[:,200], int(ny/2) )
+cfn = fftconvolve(pdfl, pdfl[::-1], mode='full')
+
+plt.figure()
+plt.plot(pdfl)
+plt.show()
+plt.figure()
+plt.plot( cfn )
+plt.show()
+
+pdfl = np.pad( dife[400], int(nx/2) )
+cfn = fftconvolve(pdfl, pdfl[::-1], mode='full')
+
+plt.figure()
+plt.plot(pdfl)
+plt.show()
+plt.figure()
+plt.plot( cfn )
+plt.show()
+#%%
+i = -10
+fgh = []
+for n in range(len(ds_v)):
+    fgh.append( np.nanstd(difs_v[n][i]) )
+
+plt.figure()
+# plt.plot(salis_v, fgh, '.')
+plt.plot(fgh, fgh, '.')
+plt.show()
+
+# n = 10
+# plt.figure()
+# plt.imshow( difs_v[n][i] )
+# plt.show()
+# np.nanstd(difs_v[n][i])
+
+#%%
+kurv_v = []
+for n in tqdm(range(len(ds_v))):
+    # halg = nangauss(hints_v[n],5)
+    halg = nangauss(difs_v[n],5)
+    gt,gy,gx = np.gradient( halg , np.arange(len(hints_v[n]))*0.5, yns_v[n][:,0], xns_v[n][0])
+    _,gyy,gyx = np.gradient( gy , np.arange(len(hints_v[n]))*0.5, yns_v[n][:,0], xns_v[n][0])
+    _,gxy,gxx = np.gradient( gx , np.arange(len(hints_v[n]))*0.5, yns_v[n][:,0], xns_v[n][0])
+    kurv = ( (1 + gyy**2)*gxx + (1+gxx**2)*gyy - 2*gx*gy*gxy) / (1+gx**2+gy**2)**(3/2) 
+    kurv_v.append(kurv)
+
+kurv_t = []
+for n in tqdm(range(len(ds_t))):
+    # halg = nangauss(hints_t[n],5)
+    halg = nangauss(difs_t[n],5)
+    gt,gy,gx = np.gradient( halg , np.arange(len(hints_t[n]))*0.5, yns_t[n][:,0], xns_t[n][0])
+    _,gyy,gyx = np.gradient( gy , np.arange(len(hints_t[n]))*0.5, yns_t[n][:,0], xns_t[n][0])
+    _,gxy,gxx = np.gradient( gx , np.arange(len(hints_t[n]))*0.5, yns_t[n][:,0], xns_t[n][0])
+    kurv = ( (1 + gyy**2)*gxx + (1+gxx**2)*gyy - 2*gx*gy*gxy) / (1+gx**2+gy**2)**(3/2) 
+    kurv_t.append(kurv)
+#%%
+n = 27
+i = -10
+
+# fil = binary_erosion(~np.isnan(kurv_t[n][i]), disk(30)) * 1.
+# fil[fil==0.] = np.nan
+kusd, kume = np.nanstd( kurv_t[n][i] ), np.nanmean( kurv_t[n][i] )
+fil = np.zeros_like(kurv_t[n][i]) * False
+fil[ (kurv_t[n][i] < (kume+2*kusd)) * (kurv_t[n][i] > (kume-2*kusd)) ] = True
+# fil = ~np.isnan(kurv_t[n][i])
+
+# print(salis_t[n], angys_t[n], np.nanstd( kurv_t[n][i] )) #, np.nanstd( kurv_t[n][i] * fil ) )
+# print( skew( kurv_t[n][i][fil] ), kurtosis( kurv_t[n][i][fil] ), skew( kurv_t[n][i][fil] ) / kurtosis( kurv_t[n][i][fil] )   )
+print( skew( kurv_t[n][i][fil>0] ), kurtosis( kurv_t[n][i][fil>0] ), skew( kurv_t[n][i][fil>0] ) / kurtosis( kurv_t[n][i][fil>0] )   )
+# print( skew( difs_t[n][i][fil] ), kurtosis( difs_t[n][i][fil] ), skew( difs_t[n][i][fil] ) / kurtosis( difs_t[n][i][fil] )   )
+
+# plt.figure()
+# plt.imshow( kurv_v[n][i] )
+# plt.colorbar()
+# plt.show()
+plt.figure()
+plt.imshow( kurv_t[n][i] )
+plt.colorbar()
+plt.show()
+# plt.figure()
+# plt.imshow( fil * kurv_t[n][i] )
+# plt.colorbar()
+# plt.show()
+# plt.figure()
+# plt.imshow( difs_t[n][i] )
+# plt.colorbar()
+# plt.show()
+
+plt.figure()
+# plt.hist( ((kurv_t[n][i] - np.nanmean(kurv_t[n][i])) / np.nanstd(kurv_t[n][i])  ).flatten(), bins=90 )
+plt.hist( kurv_t[n][i][fil>0].flatten(), bins=90, density=True )
+plt.hist( kurv_t[n][i].flatten(), bins=90, alpha=0.5, density=True )
+# plt.yscale('log')
+plt.show()
+# # plt.figure()
+# # plt.hist( difs_t[n][i].flatten(), bins=90 )
+# # # plt.yscale('log')
+# # plt.show()
+
+#%%
+# i = -20
+kuku_v, skku_v = [],[]
+for n in tqdm(range(len(ds_v))):
+    kks, skk = [],[]
+    for i in range(len(kurv_v[n])):
+        kusd, kume = np.nanstd( kurv_v[n][i] ), np.nanmean( kurv_v[n][i] )
+        fil = np.zeros_like(kurv_v[n][i]) * False
+        fil[ (kurv_v[n][i] < (kume+2*kusd)) * (kurv_v[n][i] > (kume-2*kusd)) ] = True
+        # fil = ~np.isnan(kurv_v[n][i])
+        
+        skk.append( skew( kurv_v[n][i][fil>0] )) # [fil>0] ) )
+        kks.append( kurtosis( kurv_v[n][i][fil>0] )) #[fil>0] ) )
+    skku_v.append( skk )
+    kuku_v.append( kks )
+
+kuku_t, skku_t = [],[]
+for n in tqdm(range(len(ds_t))):
+    kks, skk = [],[]
+    for i in range(len(kurv_t[n])):
+        kusd, kume = np.nanstd( kurv_t[n][i] ), np.nanmean( kurv_t[n][i] )
+        fil = np.zeros_like(kurv_t[n][i]) * False
+        fil[ (kurv_t[n][i] < (kume+2*kusd)) * (kurv_t[n][i] > (kume-2*kusd)) ] = True
+        # fil = ~np.isnan(kurv_t[n][i])
+        
+        skk.append( skew( kurv_t[n][i][fil>0] ))# [fil>0] ) )
+        kks.append( kurtosis( kurv_t[n][i][fil>0] ))# [fil>0] ) )
+    skku_t.append( skk )
+    kuku_t.append( kks )
+#%%
+# n = 0
+
+plt.figure()
+for n in [0,4,10,14,13]:
+    # plt.plot( skku_v[n], label=n )
+    plt.plot( kuku_v[n], label=n )
+# plt.plot( kuku_v[n] )
+plt.legend()
+plt.show()
+
+plt.figure()
+for n in range(len(ds_v)):
+    plt.plot(salis_v[n], np.nanmin(skku_v[n]),'.' )
+    # plt.plot( kuku_v[n], label=n )
+# plt.plot( kuku_v[n] )
+plt.show()
+
+
+
+
+#%%
+
+shape_t = [0,2,0,2,3,1,1,1,1,1,3,3,3,3,0,1,0,2,3,3,2,2,3,1,3,3,0,1,1,0,0,0,1,1,3,1,2,2,1]
+marker_t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0]
+shape_v = [1,1,1,1,0,0,0,1,1,1,1,1,1,1,0,1] 
+
+# dictco = {0:(0,0,1), 1:(1,0,0), 2:(0,1,0), 3:(0.5,0.5,0.5)}
+# dictco = {0:(0.5,0.5,0.5), 1:'#3B719F', 2:'#6aa84f', 3:'#ba3c3c'}
+dictco = {0:'magenta', 1:'blue', 2:'green', 3:'orange'}
+dictma = {0:'o',1:'d'}
+
+cols_v = [dictco[j] for j in shape_v]
+mars_t = [dictma[j] for j in marker_t]
+cols_t = [dictco[j] for j in shape_t]
+
+
+plt.figure()
+# plt.scatter(salis_v, sdku_v,marker='.', c=cols_v)
+# plt.scatter(salis_v, skku_v,marker='.', c=cols_v)
+plt.scatter(kuku_v, skku_v,marker='.', c=cols_v)
+# plt.scatter(sdku_v, sdku_v, marker='.')
+plt.show()
+plt.figure()
+# plt.scatter(salis_t, sdku_t, marker='.', c=cols_t )
+# plt.scatter(salis_t, skku_t, marker='.', c=cols_t )
+plt.scatter(kuku_t, skku_t, marker='.', c=cols_t )
+# plt.scatter(sdku_t, sdku_t, marker='.', c=cols_t )
+plt.show()
+
+#%%
+plt.figure()
+for n in [7,14,27]:
+    i = -20
+    
+    # kuce = np.copy(kurv_t[n][i])
+    # kuce = np.copy(difs_t[n][i])
+    # kuce[ np.isnan(kuce) ] = 0.
+    # kft = np.fft.fft2( kuce )
+    # kx, ky = np.fft.fftfreq( np.shape(kuce)[1] ), np.fft.fftfreq( np.shape(kuce)[0] )
+    # kx,ky = np.meshgrid( kx,ky )
+    # k, thk = np.sqrt(kx**2+ky**2), np.arctan2(ky,kx)
+    
+    # kg,thg = np.arange(0,0.5,0.0015), np.linspace(-np.pi,np.pi,1000)
+    # kg,thg = np.meshgrid(kg,thg)
+    # kfg = griddata( np.array([kx.flatten(),ky.flatten()]).T, kft.flatten(), (kg*np.cos(thg), kg*np.sin(thg)), method='linear')
+    
+    # sng = np.trapz( np.abs(kfg)**2 * kg, np.linspace(-np.pi,np.pi,1000), axis=0 )
+    
+
+    # plt.figure()
+    # plt.imshow( np.log(np.abs(kfg)) )
+    # plt.imshow( thg )
+    # plt.plot( kg[0,:], sng, '.-'  )
+    # plt.yscale('log')
+    # plt.xscale('log')
+    
+    # plt.hist( kurv_t[n][i].flatten(), bins=90, alpha=0.5, label=n, density=True )
+    plt.hist( ((kurv_t[n][i] - np.nanmean(kurv_t[n][i])) / np.nanstd(kurv_t[n][i])).flatten(), bins=90, alpha=0.5, label=n, density=True )
+plt.legend()    
+plt.show()
+
+# plt.figure()
+# # plt.imshow( np.fft.fftshift(np.log(np.abs(kft)**2)) )
+# # plt.imshow( np.fft.fftshift(k) )
+# plt.imshow( kuce )
+# plt.colorbar()
+# plt.show()
+
+#%%
+
+
+
+#%%
+# =============================================================================
+# Local (inside scallop region) melt rate diferences
+# =============================================================================
+i = -20 #-10, -20, 40
+
+medif_v, medis_v = [],[]
+gtsd_v = []
+for n in tqdm(range(len(xns_v))):
+    halg = nangauss(hints_v[n],5)
+    gt,gy,gx = np.gradient( halg , np.arange(len(hints_v[n]))*0.5, yns_v[n][:,0], xns_v[n][0])
+    
+    scc, mesd = np.zeros_like(hints_v[n][i]), []
+    for i in range(-20,0):
+        for j in range(len(labs_v[n][i])):
+            # scc += (wtssal_v[n][i] == labs_v[n][i][j]) * labs_v[n][i][j]
+            scpo = np.where( wtssal_v[n][i] == labs_v[n][i][j] )
+            mesd.append( np.std( gt[i][scpo] ) )
+
+    medif_v.append( np.nanmean(mesd) )
+    medis_v.append( np.nanstd(mesd) )
+    # gtsd_v.append( np.nanstd(gt[i]) )
+
+medif_t, medis_t = [],[]
+gtsd_t = []
+for n in tqdm(range(len(xns_t))):
+    halg = nangauss(hints_t[n],5)
+    gt,gy,gx = np.gradient( halg , np.arange(len(hints_t[n]))*0.5, yns_t[n][:,0], xns_t[n][0])
+    
+    scc, mesd = np.zeros_like(hints_t[n][i]), []
+    for i in range(-20,0):
+        for j in range(len(labs_t[n][i])):
+            # scc += (wtssal_t[n][i] == labs_t[n][i][j]) * labs_t[n][i][j]
+            scpo = np.where( wtssal_t[n][i] == labs_t[n][i][j] )
+            mesd.append( np.std( gt[i][scpo] ) )
+
+    medif_t.append( np.nanmean(mesd) )
+    medis_t.append( np.nanstd(mesd) )
+    # gtsd_t.append( np.nanstd(gt[i]) )
+
+#%%
+
+plt.figure()
+
+
+for n in range(len(ds_v)):
+    if salis_v[n] > 5 and salis_v[n] < 25: 
+        plt.errorbar(salis_v[n], medif_v[n], yerr=medis_v[n],fmt='^', color=((angys_v[n]+20)/71,0.5,1-(angys_v[n]+20)/71)) #(0.5,1-salis_t[n]/35,salis_t[n]/35)
+for l,n in enumerate([5,6,7,8,9,15,23,27,28,38]):
+    plt.errorbar(salis_t[n], medif_t[n], yerr=medis_t[n],fmt='o', color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71) )
+    # plt.plot(salis_t[n], gtsd_t[n],'o', color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71) )
+for l,n in enumerate([32,33,35]):
+    plt.errorbar(salis_t[n], medif_t[n], yerr=medis_t[n],fmt='d', color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71) )
+    # plt.plot(salis_t[n], gtsd_t[n],'d', color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71) )
+# plt.title(r'$t$ = '+str(i/2)+' min')
+plt.title(r'$t$ = last '+str(20/2)+' min')
+plt.xlabel(r'$S$ (g/kg)')
+plt.ylabel(r'$\langle \sigma_{\dot{m}} \rangle_{scallop}$ (mm/min)')
+plt.show()
+
+#%%
+
+i = -20
+
+# mesd, mssd = [], []
+# for n in tqdm(range(len(ds_v))):
+#     halg = nangauss(hints_v[n],2)
+#     gt,gy,gx = np.gradient( halg , np.arange(len(hints_v[n]))*0.5, yns_v[n][:,0], xns_v[n][0])
+    
+#     gtm = np.nanmean(gt[i:],axis=0)
+    
+#     # img = gt[i]  
+#     img = gtm 
+#     img2 = img**2
+#     kernel = disk(30)
+#     kernel = kernel / np.sum(kernel)
+
+#     img_mean = convolve2d(img, kernel, mode="valid")
+#     img2_mean = convolve2d(img2, kernel, mode="valid")
+#     losd = np.sqrt( img2_mean - img_mean**2 )
+    
+#     mesd.append( np.nanmedian(losd) )
+#     mssd.append( np.nanstd(losd) )
+
+mesd, mssd = [], []
+for n in tqdm(range(len(ds_t))):
+    halg = nangauss(hints_t[n],2)
+    gt,gy,gx = np.gradient( halg , np.arange(len(hints_t[n]))*0.5, yns_t[n][:,0], xns_t[n][0])
+    
+    gtm = np.nanmean(gt[i:],axis=0)
+    
+    # img = gt[i]  
+    img = gtm 
+    img2 = img**2
+    kernel = disk(30)
+    kernel = kernel / np.sum(kernel)
+
+    img_mean = convolve2d(img, kernel, mode="valid")
+    img2_mean = convolve2d(img2, kernel, mode="valid")
+    losd = np.sqrt( img2_mean - img_mean**2 )
+    
+    mesd.append( np.nanmedian(losd) )
+    mssd.append( np.nanstd(losd) )
+#%%
+
+# plt.figure()
+# # plt.errorbar( salis_v, np.array(mesd)**2, yerr=np.array(mssd)**2, fmt='.' )
+# plt.errorbar( salis_v, mesd, yerr=mssd, fmt='.' )
+# # plt.plot( salis_v, mesd, '.' )
+# plt.show()
+
+plt.figure()
+# plt.errorbar( salis_t, np.array(mesd)**2, yerr=np.array(mssd)**2, fmt='.' )
+for n in tqdm(range(len(ds_t))):
+    plt.errorbar( salis_t[n], mesd[n], yerr=mssd[n], fmt='.', color=((angys_t[n]+20)/71,0.5,1-(angys_t[n]+20)/71) )
+# plt.plot( salis_t, mesd, '.' )
+plt.show()
+#%%
+
+
+
 
 
