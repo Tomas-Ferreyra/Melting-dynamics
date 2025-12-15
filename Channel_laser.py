@@ -15,9 +15,11 @@ from tqdm import tqdm
 from time import time
 
 from scipy.optimize import least_squares
+from scipy.stats import linregress
 
+from skimage import io
 from skimage.filters import gaussian, roberts, frangi, sato
-from skimage.morphology import remove_small_objects, binary_dilation, disk, skeletonize, binary_closing
+from skimage.morphology import remove_small_objects, binary_dilation, disk, skeletonize, binary_closing, binary_erosion
 from skimage.measure import label, regionprops
 from skimage.segmentation import felzenszwalb, mark_boundaries
 
@@ -68,7 +70,7 @@ def calibration_second(v, x,y):
 # =============================================================================
 t1 = time()
 
-cal = imageio.imread('/Volumes/Ice blocks/Test channel laser/12-03-25/DSC_3206.JPG' )[40:5475,2460:2940,1]
+cal = imageio.imread('/Volumes/Ice blocks/Test channel laser/25-03-12/DSC_3206.JPG' )[40:5475,2460:2940,1]
 calg =  gaussian(cal,2) - gaussian(cal,30)
 caln = (calg - np.min(calg)) / (np.max(calg)- np.min(calg))
 calb = caln < 0.5
@@ -87,7 +89,7 @@ spx, spy = sor_points[:,0], sor_points[:,1]
 nx,ny = 25, 77
 
 px, py =  np.array([i%nx for i in range(nx*ny)]), np.array([int(i/nx) for i in range(nx*ny)])[::-1]
-px, py = px*3, py*6 # en mm
+px, py = px*3, (np.max(py)-py)*6 # en mm
 
 t2 = time()
 t2-t1
@@ -122,8 +124,7 @@ t2 = time()
 t2-t1, ls1, ls2
 
 #%%
-
-cals = imageio.imread('/Volumes/Ice blocks/Test channel laser/12-03-25/DSC_3206.JPG' ) #[40:5475,2460:2940,1]
+cals = imageio.imread('/Volumes/Ice blocks/Test channel laser/25-03-12/DSC_3206.JPG' ) #[40:5475,2460:2940,1]
 
 
 plt.figure()
@@ -426,9 +427,198 @@ plt.show()
 
 
 #%%
+from scipy.ndimage import rotate
+from skimage.color import rgb2gray
+#%%
+# =============================================================================
+# Scan?
+# =============================================================================
 
+
+# vid = imageio.get_reader('/Volumes/Ice blocks/Test channel laser/20-05-25/DSC_4488.MP4', 'ffmpeg') # 1599 last frame
+# vid = imageio.get_reader('/Volumes/Ice blocks/Test channel laser/22-05-25/DSC_4491.MP4', 'ffmpeg') # 1599 last frame
+# vid = imageio.get_reader('/Volumes/Ice blocks/Test channel laser/22-05-25/DSC_4489.MP4', 'ffmpeg') # 1599 last frame
+# vid = imageio.get_reader('/Volumes/Ice blocks/Test channel laser/22-05-25/DSC_4492.MP4', 'ffmpeg') # 1599 last frame
+# vid = imageio.get_reader('/Volumes/Ice blocks/Test channel laser/22-05-25/DSC_4493.MP4', 'ffmpeg') # 1599 last frame
+
+vid = imageio.get_reader('/Volumes/Ice blocks/Test channel laser/22-05-25/DSC_4499.MP4', 'ffmpeg') # 1599 last frame
+
+#%%
+# for i in range(20,40):
+#     im = vid.get_data(i)
+#     plt.figure()
+#     plt.imshow( im )
+#     plt.title(i)
+#     plt.show()
+    
+ims = []
+for i in tqdm(range(5)):
+    im = vid.get_data(i)[:,:,:]
+    # im = rgb2gray(im)
+    # ims.append( rotate(im, 90) )
+    plt.figure()
+    plt.imshow( rotate(im, 90), cmap='gray' )
+    plt.title(i)
+    plt.show()
+    
+# imm = np.mean( ims, axis=0 )
+
+#%%
+ 
+plt.figure()
+plt.imshow( imm, cmap='gray' )
+plt.show()
+
+#%%
+# =============================================================================
+# Angles grid
+# =============================================================================
+i90 = io.imread('/Volumes/Ice blocks/Test channel laser/25-06-12/DSC_0445.NEF')[:,:,0]
+#%%
+
+cuerda = i90[:,250:450]
+cord = remove_small_objects( (gaussian(cuerda,0.1) - gaussian(cuerda,25)) < -0.05, min_size=200)
+
+yco, xco = np.where( cord )
+linc = linregress(xco, yco)
+
+grid = i90[:,1850:2150]
+
+ygr, xgr = np.where( grid < 40 )
+ling = linregress(xgr, ygr)
+
+xc = np.linspace(82,158,100) #+ 250 
+xg = np.linspace(68,224,100) #+ 1850
+
+plt.figure()
+plt.imshow( i90, cmap='gray' )
+plt.plot(xc+250, linc[0]*xc+linc[1], 'r-')
+plt.plot(xg+1850, ling[0]*xg+ling[1], 'r-')
+plt.show()
+# plt.figure()
+# plt.imshow( cuerda, cmap='gray' )
+# plt.plot(x, linr[0]*x+linr[1], 'r-')
+# plt.show()
+
+#%%
+c90 = io.imread('/Volumes/Ice blocks/Test channel laser/25-06-12/DSC_0134.NEF')[:5230,4000:5200,0]
+
+xc = np.linspace(36.5,50.5,100)
+xp = np.linspace(331.3, 354.8, 100)
+
+plt.figure()
+plt.imshow( c90 )
+plt.plot( xc+260, -373.5 * (xc - 50.5), 'r-' )
+plt.plot( xp, -223.239 * xp + 79201.772 , 'r-' )
+plt.show()
 
 
 
 #%%
 
+m1, m2 = linc[0], ling[0]
+# print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) ) #* 180/np.pi )
+print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) * 180/np.pi )
+
+m1, m2 = -373.5, -223.239
+# print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) ) #* 180/np.pi )
+print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) * 180/np.pi )
+
+
+
+#%%
+# =============================================================================
+# Angles grid (not rotated)
+# =============================================================================
+iside = io.imread('/Volumes/Ice blocks/Test channel laser/25-06-12/DSC_0135.NEF')[:,4000:5000,0]
+iback = io.imread('/Volumes/Ice blocks/Test channel laser/25-06-12/DSC_0443.NEF')[:,:,0]
+#%%
+
+xs = np.linspace(470.8, 476.5, 100 )
+ys = -946.55 * xs + 451028.91
+
+xc = np.linspace(293.2, 309, 100 )
+yc = -342.58 * xc + 105857.42
+
+plt.figure()
+plt.imshow( iside, cmap='gray' )
+plt.plot(xs, ys, 'r-')
+plt.plot(xc, yc, 'r-')
+plt.show()
+
+#%%
+
+# left: 323, right: 360 -> xt: 341.5 , yt: 0
+# left: 260, right: 311 -> xt: 285.5 , yt: 7270
+
+xg = np.linspace(1348.5, 1498, 100 )
+yg = 51.29 * xg - 69106.83
+
+xc = np.linspace(281, 341.5, 100 )
+yc = -129.82 * xc + 44334.02
+
+plt.figure()
+plt.imshow( iback, cmap='gray' )
+plt.plot( xg, yg, 'r-' )
+plt.plot( xc, yc, 'r-' )
+plt.show()
+#%%
+
+m1, m2 = -946.55, -342.58
+# print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) ) #* 180/np.pi )
+print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) * 180/np.pi )
+
+m1, m2 = 51.29, -129.82
+# print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) ) #* 180/np.pi )
+print( np.arctan( np.abs( (m1-m2)/(1+m1*m2) ) ) * 180/np.pi )
+
+
+
+#%%
+ 
+#
+
+
+
+
+
+
+
+#%%
+ 
+
+
+
+
+
+
+
+#%%
+ 
+
+
+
+
+
+
+
+#%%
+ 
+
+
+
+
+
+
+
+#%%
+ 
+
+
+
+
+
+
+
+#%%
+ 
